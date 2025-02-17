@@ -5,15 +5,15 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/downloads/)
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/ChrisMcKee1/code-tokenizer/releases)
+[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/ChrisMcKee1/code_tokenizer/releases)
 
 <div align="center">
 
-[⭐ Star](https://github.com/ChrisMcKee1/code-tokenizer) | 
+[⭐ Star](https://github.com/ChrisMcKee1/code_tokenizer) | 
 [🍴 Fork](https://github.com/ChrisMcKee1/code_tokenizer/fork) 
 | 
-[🐛 Report Bug](https://github.com/chrismcChrisMcKee1kee/code-tokenizer/issues/new?template=bug_report.md&title=[BUG]) | 
-[✨ Request Feature](https://github.com/ChrisMcKee1/code-tokenizer/issues/new?template=feature_request.md&title=[FEATURE])
+[🐛 Report Bug](https://github.com/chrismcChrisMcKee1kee/code_tokenizer/issues/new?template=bug_report.md&title=[BUG]) | 
+[✨ Request Feature](https://github.com/ChrisMcKee1/code_tokenizer/issues/new?template=feature_request.md&title=[FEATURE])
 
 </div>
 
@@ -148,7 +148,7 @@ export const formatDate = (date: Date): string => {
 
 ```bash
 # Clone the repository
-git clone https://github.com/ChrisMcKee1/code-tokenizer.git
+git clone https://github.com/ChrisMcKee1/code_tokenizer.git
 
 # Create virtual environment
 python -m venv venv
@@ -212,8 +212,8 @@ Made with ❤️ by developers, for developers
 
 ⭐ If this tool helped you, please consider giving it a star!
 
-[⭐ Star Code Tokenizer](https://github.com/ChrisMcKee1/code-tokenizer) | 
-[🍴 Fork Code Tokenizer](https://github.com/ChrisMcKee1/code-tokenizer/fork) | 
-[📝 Create Issue](https://github.com/ChrisMcKee1/code-tokenizer/issues/new/choose)
+[⭐ Star Code Tokenizer](https://github.com/ChrisMcKee1/code_tokenizer) | 
+[🍴 Fork Code Tokenizer](https://github.com/ChrisMcKee1/code_tokenizer/fork) | 
+[📝 Create Issue](https://github.com/ChrisMcKee1/code_tokenizer/issues/new/choose)
 
 </div>
