@@ -3,7 +3,8 @@ from setuptools import setup, find_packages
 setup(
     name="code-tokenizer",
     version="1.0.0",
-    packages=find_packages(),
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
     install_requires=[
         'tiktoken',  # For token counting
         'pygments',  # For language detection and syntax highlighting
@@ -18,7 +19,7 @@ setup(
     author="Chris McKee",
     author_email="your.email@example.com",
     description="Transform your codebase into LLM-ready tokens with intelligent processing",
-    long_description=open('README.md').read(),
+    long_description=open('README.md', encoding='utf-8').read(),
     long_description_content_type="text/markdown",
     url="https://github.com/chrismckee/code-tokenizer",
     classifiers=[
