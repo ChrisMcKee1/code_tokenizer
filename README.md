@@ -12,7 +12,7 @@
 [⭐ Star](https://github.com/ChrisMcKee1/code_tokenizer) | 
 [🍴 Fork](https://github.com/ChrisMcKee1/code_tokenizer/fork) 
 | 
-[🐛 Report Bug](https://github.com/chrismcChrisMcKee1kee/code_tokenizer/issues/new?template=bug_report.md&title=[BUG]) | 
+[🐛 Report Bug](https://github.com/ChrisMcKee1/code_tokenizer/issues/new?template=bug_report.md&title=[BUG]) | 
 [✨ Request Feature](https://github.com/ChrisMcKee1/code_tokenizer/issues/new?template=feature_request.md&title=[FEATURE])
 
 </div>
