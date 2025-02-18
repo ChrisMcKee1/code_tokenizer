@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "code-tokenizer"
-version = "1.0.0"
+dynamic = ["version"]  # Use dynamic version from .env
 description = "Transform your codebase into LLM-ready tokens with intelligent processing"
 readme = "README.md"
 requires-python = ">=3.6"
@@ -25,12 +25,17 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Software Development :: Documentation",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
 ]
+keywords = ["llm", "tokenizer", "code-analysis", "documentation", "cli"]
 dependencies = [
     "tiktoken",
     "pygments",
     "rich",
     "pathspec",
+    "python-dotenv",
 ]
 
 [project.optional-dependencies]
@@ -66,7 +71,7 @@ include = '\.pyi?$'
 [tool.isort]
 profile = "black"
 multi_line_output = 3
-line_length = 100
+line-length = 100
 
 [tool.mypy]
 python_version = "3.6"
@@ -77,5 +82,14 @@ disallow_incomplete_defs = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-ra -q --cov=code_tokenizer"
-testpaths = ["tests"] 
+addopts = "-ra -q --cov=code_tokenizer --capture=no --tb=short --log-cli-level=INFO"
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+    "ignore::RuntimeWarning"
+]
+env = [
+    "PYTHONUNBUFFERED=1",
+    "DISABLE_RICH_PROGRESS=1"
+] 

@@ -18,6 +18,9 @@
 
 Code Tokenizer helps you prepare your codebase for Large Language Models (LLMs) by intelligently processing and tokenizing your code. Perfect for developers working with AI models like GPT-4, Claude, and Gemini! 🚀
 
+> [!NOTE]
+> Code Tokenizer automatically handles encoding detection, language identification, and token counting for all major LLM models. Just point it at your codebase and let it do the work!
+
 ## ✨ Why Code Tokenizer?
 
 - 🎯 **Smart Processing**: Automatically detects languages, handles encodings, and respects `.gitignore` rules
@@ -27,9 +30,47 @@ Code Tokenizer helps you prepare your codebase for Large Language Models (LLMs) 
 
 ## 🚀 Quick Start
 
+### Installation
+
+Choose one of these installation methods:
+
+> [!TIP]
+> Method 1 (using pipx) is recommended as it handles all PATH configuration automatically and keeps your Python environment clean!
+
+#### Method 1: Recommended (Using pipx)
 ```bash
-# Install with pip
-pip install code-tokenizer
+# Install pipx if you haven't already
+python -m pip install --user pipx
+python -m pipx ensurepath
+
+# Install code-tokenizer globally
+pipx install code-tokenizer
+```
+
+#### Method 2: Using pip
+```bash
+# Install with pip (might require PATH configuration)
+pip install --user code-tokenizer
+
+# Add to PATH if needed:
+# Windows (PowerShell Admin):
+[Environment]::SetEnvironmentVariable(
+    "Path",
+    [Environment]::GetEnvironmentVariable("Path", "User") + ";%APPDATA%\Python\Python313\Scripts",
+    "User"
+)
+
+# Linux/Mac (add to ~/.bashrc or ~/.zshrc):
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+### Usage
+
+The `code-tokenizer` command will be available globally after installation:
+
+```bash
+# View help and options
+code-tokenizer --help
 
 # Basic usage
 code-tokenizer -d ./my-project -o ./output
@@ -41,6 +82,9 @@ code-tokenizer -d ./my-project -o ./output --model claude-3-opus
 code-tokenizer -d ./my-project -o ./output --format json
 ```
 
+> [!IMPORTANT]
+> Always ensure you have sufficient token allowance in your target LLM model. Use the `--max-tokens` option to control file splitting and prevent token limit issues.
+
 ## 📋 Features
 
 ### 🎯 Smart File Processing
@@ -48,6 +92,9 @@ code-tokenizer -d ./my-project -o ./output --format json
 - ✓ Intelligent encoding handling
 - ✓ Binary file filtering
 - ✓ Full `.gitignore` support
+
+> [!WARNING]
+> Large binary files and certain encodings can significantly impact token counts. Use the `--no-metadata` flag if you encounter processing issues with complex files.
 
 ### 🤖 LLM Support
 - ✓ Token counting for major models
@@ -74,17 +121,35 @@ Creates:
 - `my-project_docs.md`: Code documentation
 - `my-project_analysis.md`: Statistical analysis
 
+> [!CAUTION]
+> The output directory will be created if it doesn't exist, and existing files will be overwritten. Always verify your output path to avoid data loss.
+
 ### Custom Settings
 ```bash
 # Increase token limit
 code-tokenizer -d ./my-project -o ./output --max-tokens 5000
 
-# Use custom gitignore
-code-tokenizer -d ./my-project -o ./output --gitignore ./custom/.gitignore
+# Process all files (bypass .gitignore)
+code-tokenizer -d ./my-project -o ./output --bypass-gitignore
 
 # Generate JSON for API use
 code-tokenizer -d ./my-project -o ./output --format json
 ```
+
+> [!TIP]
+> Use `--bypass-gitignore` when you need to process all files in a directory, regardless of .gitignore rules.
+
+### Understanding `.gitignore` Behavior
+
+> [!NOTE]
+> By default, Code Tokenizer respects your project's existing `.gitignore` file. Use `--bypass-gitignore` to process all files without any ignore rules.
+
+> [!IMPORTANT]
+> When using `--bypass-gitignore`, be aware that:
+> - All files will be processed, including build artifacts and dependencies
+> - Processing time may increase significantly
+> - Token counts will include everything in the directory
+> - Large binary files and dependencies may cause issues
 
 ## 📋 Command Options
 
@@ -95,8 +160,11 @@ code-tokenizer -d ./my-project -o ./output --format json
 | `--model` | LLM model | claude-3-sonnet |
 | `--max-tokens` | Tokens per file | 2000 |
 | `--format` | Output format | markdown |
-| `--gitignore` | Custom .gitignore | None |
+| `--bypass-gitignore` | Process all files | False |
 | `--no-metadata` | Skip metadata | False |
+
+> [!TIP]
+> Use `--format json` when integrating with other tools or APIs. The JSON output includes detailed metadata and is easier to parse programmatically.
 
 ## 📦 Output Files
 

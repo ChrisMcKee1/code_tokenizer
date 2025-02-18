@@ -20,12 +20,26 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual Environment
-venv/
-env/
-ENV/
+# Testing
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+test-results.xml
+
+# Environment
 .env
 .venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
 # IDE
 .idea/
@@ -33,6 +47,10 @@ ENV/
 *.swp
 *.swo
 *~
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Test files and directories
 test_*/
@@ -54,7 +72,6 @@ coverage/
 .coverage
 
 # OS generated files
-.DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100

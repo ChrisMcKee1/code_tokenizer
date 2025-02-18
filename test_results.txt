@@ -1,0 +1,26 @@
+..
+
+---------- coverage: platform win32, python 3.13.2-final-0 -----------
+Name                                               Stmts   Miss  Cover
+----------------------------------------------------------------------
+src\code_tokenizer\__init__.py                         8      0   100%
+src\code_tokenizer\__main__.py                        51     40    22%
+src\code_tokenizer\cli.py                             96     86    10%
+src\code_tokenizer\core\__init__.py                    0      0   100%
+src\code_tokenizer\core\tokenizer.py                  19     14    26%
+src\code_tokenizer\models\__init__.py                  0      0   100%
+src\code_tokenizer\models\model_config.py             13      6    54%
+src\code_tokenizer\services\__init__.py                0      0   100%
+src\code_tokenizer\services\language_detector.py      18      7    61%
+src\code_tokenizer\services\tokenizer_service.py     100     43    57%
+src\code_tokenizer\ui\__init__.py                      0      0   100%
+src\code_tokenizer\ui\progress_display.py             41     26    37%
+src\code_tokenizer\utils\__init__.py                   0      0   100%
+src\code_tokenizer\utils\path_utils.py                36      9    75%
+----------------------------------------------------------------------
+TOTAL                                                382    231    40%
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! KeyboardInterrupt !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+C:\Program Files\Python313\Lib\importlib\metadata\__init__.py:278: KeyboardInterrupt
+(to show a full traceback on KeyboardInterrupt use --full-trace)
+2 passed in 2.03s
