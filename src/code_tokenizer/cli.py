@@ -1,10 +1,12 @@
 import argparse
+import json
 import sys
 from pathlib import Path
+
 from rich.console import Console
+
 from .models.model_config import MODEL_CONTEXT_SIZES
 from .services.tokenizer_service import TokenizerService
-import json
 
 
 def format_model_list() -> str:
@@ -107,9 +109,9 @@ making it easy to prepare your code for LLM analysis while respecting .gitignore
             "output_format": args.format,
             "output_dir": str(output_dir),
             "include_metadata": not args.no_metadata,
-            "bypass_gitignore": args.bypass_gitignore
+            "bypass_gitignore": args.bypass_gitignore,
         }
-        
+
         tokenizer = TokenizerService(config)
         stats = tokenizer.process_directory()
 
@@ -120,10 +122,7 @@ making it easy to prepare your code for LLM analysis while respecting .gitignore
                 "model": args.model,
                 "max_tokens": args.max_tokens,
                 "files": stats.get("processed_files", []),
-                "stats": {
-                    k: v for k, v in stats.items() 
-                    if k != "processed_files"
-                }
+                "stats": {k: v for k, v in stats.items() if k != "processed_files"},
             }
             with open(docs_file, "w") as f:
                 json.dump(docs_content, f, indent=2)
@@ -131,7 +130,7 @@ making it easy to prepare your code for LLM analysis while respecting .gitignore
             with open(docs_file, "w") as f:
                 f.write(f"# {base_name} Documentation\n\n")
                 f.write(f"Generated with Code Tokenizer using {args.model}\n\n")
-                
+
                 # Write statistics
                 f.write("## Statistics\n\n")
                 for key, value in stats.items():
@@ -143,7 +142,7 @@ making it easy to prepare your code for LLM analysis while respecting .gitignore
                             f.write(f"- {k}: {v}\n")
                     else:
                         f.write(f"- {key.replace('_', ' ').title()}: {value}\n")
-                
+
                 # Write file contents
                 if processed_files := stats.get("processed_files"):
                     f.write("\n## Files\n\n")
@@ -152,8 +151,8 @@ making it easy to prepare your code for LLM analysis while respecting .gitignore
                         f.write(f"- Language: {file_info['language']}\n")
                         f.write(f"- Tokens: {file_info['tokens']}\n")
                         f.write(f"- Size: {file_info['size']} bytes\n\n")
-                        f.write("```" + file_info['language'].lower() + "\n")
-                        f.write(file_info['content'])
+                        f.write("```" + file_info["language"].lower() + "\n")
+                        f.write(file_info["content"])
                         f.write("\n```\n\n")
 
         # Write analysis file
@@ -167,7 +166,7 @@ making it easy to prepare your code for LLM analysis while respecting .gitignore
                 f.write(f"- Skipped Files: {stats['skipped_files']}\n")
             if stats.get("truncated_files"):
                 f.write(f"- Truncated Files: {stats['truncated_files']}\n")
-            
+
             if languages := stats.get("languages"):
                 f.write("\n## Language Distribution\n\n")
                 for lang, count in languages.items():

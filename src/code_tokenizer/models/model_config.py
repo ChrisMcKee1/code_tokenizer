@@ -37,7 +37,8 @@ MODEL_TOKEN_LIMITS = MODEL_CONTEXT_SIZES
 # Mapping of model names to their tiktoken encoding names
 MODEL_ENCODINGS: Dict[str, str] = {
     # Default to cl100k_base for all models
-    model: "cl100k_base" for model in MODEL_CONTEXT_SIZES.keys()
+    model: "cl100k_base"
+    for model in MODEL_CONTEXT_SIZES.keys()
 }
 
 # Default model to use if none specified

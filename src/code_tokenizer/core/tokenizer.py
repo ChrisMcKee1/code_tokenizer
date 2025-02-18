@@ -1,8 +1,10 @@
 """Core tokenizer functionality for code processing."""
 
 from typing import Tuple
+
 import tiktoken
-from ..models.model_config import MODEL_ENCODINGS, get_model_encoding
+
+from ..models.model_config import MODEL_ENCODINGS, get_model_encoding, get_model_token_limit
 
 
 def count_tokens(text: str, model_name: str) -> int:
@@ -56,3 +58,48 @@ def truncate_text(text: str, max_tokens: int, model_name: str) -> Tuple[str, int
         raise ValueError(
             f"Model {model_name} not supported. Supported models: {list(MODEL_ENCODINGS.keys())}"
         )
+
+
+class CodeTokenizer:
+    """Handles code tokenization using tiktoken."""
+    
+    def __init__(self, model_name: str) -> None:
+        """
+        Initialize the tokenizer.
+        
+        Args:
+            model_name: Name of the LLM model to use for tokenization
+        """
+        self.model_name = model_name
+        self.encoding = tiktoken.encoding_for_model(model_name)
+        self.max_tokens = get_model_token_limit(model_name)
+        
+    def count_tokens(self, text: str) -> int:
+        """
+        Count the number of tokens in a text.
+        
+        Args:
+            text: Text to count tokens for
+            
+        Returns:
+            int: Number of tokens
+        """
+        return len(self.encoding.encode(text))
+        
+    def truncate_to_token_limit(self, text: str, max_tokens: int) -> str:
+        """
+        Truncate text to stay within token limit.
+        
+        Args:
+            text: Text to truncate
+            max_tokens: Maximum number of tokens allowed
+            
+        Returns:
+            str: Truncated text
+        """
+        tokens = self.encoding.encode(text)
+        if len(tokens) <= max_tokens:
+            return text
+            
+        truncated_tokens = tokens[:max_tokens]
+        return self.encoding.decode(truncated_tokens)

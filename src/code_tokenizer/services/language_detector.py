@@ -1,54 +1,37 @@
-"""Language detection service for code files."""
+"""Language detection utilities."""
 
-from pygments.lexers import get_lexer_for_filename
+from typing import Optional, cast, List
+
+from pygments.lexer import Lexer
+from pygments.lexers import guess_lexer, guess_lexer_for_filename
 from pygments.util import ClassNotFound
 
 
-class LanguageDetector:
-    """Service for detecting programming languages from file names."""
+def detect_language(content: str, filename: Optional[str] = None) -> str:
+    """
+    Detect the programming language of a code snippet.
 
-    # Special case mappings for common file types
-    SPECIAL_CASES = {
-        "dockerfile": "Docker",
-        ".gitignore": "text",
-        "requirements.txt": "text",
-        "readme": "text",
-        "license": "text",
-        "makefile": "Makefile",
-        ".env": "Dotenv",
-        "package.json": "JSON",
-        "tsconfig.json": "JSON",
-        "composer.json": "JSON",
-    }
+    Args:
+        content: The code content to analyze
+        filename: Optional filename to help with detection
 
-    @classmethod
-    def detect_language(cls, filename: str) -> str:
-        """
-        Detect the programming language of a file using Pygments.
+    Returns:
+        str: The detected language name
+    """
+    try:
+        if filename:
+            lexer = cast(Lexer, guess_lexer_for_filename(filename, content))
+        else:
+            lexer = cast(Lexer, guess_lexer(content))
 
-        Args:
-            filename: Name of the file to detect language for
+        # Get the language name from the lexer's aliases
+        aliases: List[str] = getattr(lexer, "aliases", [])
+        if aliases:
+            return aliases[0]
 
-        Returns:
-            str: Detected language name or 'text' if unknown
-        """
-        # Convert to lowercase for consistent matching
-        filename_lower = filename.lower()
+        # Fallback to the class name if no aliases
+        return lexer.__class__.__name__.replace("Lexer", "")
 
-        # Check special cases first
-        for pattern, lang in cls.SPECIAL_CASES.items():
-            if filename_lower == pattern or filename_lower.endswith("/" + pattern):
-                return lang
-
-        try:
-            # Use Pygments for language detection
-            lexer = get_lexer_for_filename(filename_lower)
-            name = lexer.name
-
-            # Normalize text-only file types to just "text"
-            if name in ["Text only", "Plain Text"]:
-                return "text"
-
-            return name
-        except ClassNotFound:
-            return "text"
+    except ClassNotFound:
+        # Default to plaintext if we can't detect the language
+        return "text"

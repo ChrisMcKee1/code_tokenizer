@@ -82,7 +82,7 @@ def main() -> int:
             "base_dir": args.directory,
             "model_name": args.model,
             "ignore_patterns": ignore_patterns,
-            "max_tokens_per_file": args.max_tokens
+            "max_tokens_per_file": args.max_tokens,
         }
         tokenizer = TokenizerService(config)
 
