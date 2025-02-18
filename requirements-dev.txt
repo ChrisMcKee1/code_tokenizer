@@ -1,11 +1,7 @@
-# Core production dependencies
-tiktoken>=0.9.0
-pygments>=2.17.2
-rich>=13.7.0
-pathspec>=0.12.1
-python-dotenv>=1.0.0
+# Install production dependencies
+-r requirements.txt
 
-# Development dependencies
+# Development and testing dependencies
 pytest>=8.0.0
 pytest-cov>=4.1.0
 black>=24.2.0

@@ -1,0 +1,115 @@
+> """Command-line interface for code tokenizer."""
+  
+> import argparse
+> import os
+> import sys
+  
+> from .models.model_config import DEFAULT_MODEL, MODEL_ENCODINGS, TokenizerConfig
+> from .services.tokenizer_service import TokenizerService
+> from .services.filesystem_service import RealFileSystemService
+> from .__main__ import write_output, read_ignore_patterns
+  
+  
+> def create_argument_parser():
+>     """Create the argument parser for the command-line interface."""
+>     parser = argparse.ArgumentParser(description="Process and count tokens in code files.")
+  
+>     parser.add_argument("-d", "--directory", required=True, help="Directory to process")
+>     parser.add_argument("-o", "--output", required=True, help="Output file path")
+>     parser.add_argument(
+>         "--model",
+>         default=DEFAULT_MODEL,
+>         choices=list(MODEL_ENCODINGS.keys()),
+>         help=f"Model to use for tokenization (default: {DEFAULT_MODEL})",
+>     )
+>     parser.add_argument(
+>         "--max-tokens", type=int, help="Maximum tokens per file (default: model's context limit)"
+>     )
+>     parser.add_argument(
+>         "--format",
+>         choices=["markdown", "json"],
+>         default="markdown",
+>         help="Output format (default: markdown)",
+>     )
+>     parser.add_argument("--bypass-gitignore", action="store_true", help="Bypass .gitignore rules")
+>     parser.add_argument("--no-metadata", action="store_true", help="Exclude metadata from output")
+  
+>     return parser
+  
+  
+> def parse_args(args=None):
+>     """Parse command line arguments.
+      
+>     Args:
+>         args (List[str], optional): Command line arguments. Defaults to None.
+          
+>     Returns:
+>         argparse.Namespace: Parsed arguments
+>     """
+>     parser = create_argument_parser()
+>     return parser.parse_args(args)
+  
+  
+> def main(args=None):
+>     """Main entry point for the code tokenizer.
+      
+>     Args:
+>         args (List[str], optional): Command line arguments. Defaults to None.
+          
+>     Returns:
+>         int: Exit code
+>     """
+>     try:
+>         if args is None:
+>             args = sys.argv[1:]
+              
+>         parsed_args = parse_args(args)
+>         fs_service = RealFileSystemService()
+          
+          # Create output directory if it doesn't exist
+>         output_dir = os.path.dirname(parsed_args.output)
+>         if output_dir:
+>             fs_service.create_directory(output_dir)
+          
+          # Create tokenizer config
+>         config = TokenizerConfig({
+>             "model_name": parsed_args.model,
+>             "max_tokens": parsed_args.max_tokens,
+>             "bypass_gitignore": parsed_args.bypass_gitignore,
+>             "base_dir": parsed_args.directory,
+>             "output_format": parsed_args.format,
+>             "output_dir": output_dir,
+>             "include_metadata": not parsed_args.no_metadata
+>         })
+          
+          # Create tokenizer service
+>         tokenizer = TokenizerService(config, fs_service)
+          
+          # Process the directory
+>         result = tokenizer.process_directory(
+>             directory=parsed_args.directory,
+>             output_path=parsed_args.output
+>         )
+          
+          # Check if any files were processed
+>         if result["stats"]["files_processed"] == 0:
+>             print("No files were processed. Check your directory path and gitignore settings.")
+>             return 0
+              
+          # Check for errors
+>         if result["failed_files"]:
+!             print(f"Failed to process {len(result['failed_files'])} files.")
+!             return 1
+              
+>         return 0
+          
+>     except KeyboardInterrupt:
+!         print("\nOperation cancelled by user")
+!         return 130
+>     except Exception as e:
+!         print(f"Error: {str(e)}", file=sys.stderr)
+!         return 1
+  
+  
+> if __name__ == "__main__":
+!     sys.exit(main())

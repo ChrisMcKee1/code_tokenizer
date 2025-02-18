@@ -31,6 +31,11 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 test-results.xml
+coverage_report/
+coverage_report.txt
+coverage.txt
+test_results.txt
+test_output.txt
 
 # Environment
 .env
@@ -59,6 +64,11 @@ test.*
 test_output*.md
 test_output*.json
 
+# Documentation and analysis
+*_analysis.md
+*_docs.markdown
+*.tmp.md
+
 # Logs and databases
 *.log
 *.sqlite
@@ -79,3 +89,8 @@ coverage/
 ehthumbs.db
 Thumbs.db 
 .cursor-updates
+
+# Backup files
+*~
+*.bak
+*.backup

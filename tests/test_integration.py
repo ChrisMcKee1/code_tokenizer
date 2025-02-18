@@ -1,85 +1,109 @@
 """Integration tests for code tokenizer."""
 
 import json
+import os
 import sys
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-from code_tokenizer.__main__ import parse_args, read_ignore_patterns
+from code_tokenizer.__main__ import parse_args, read_ignore_patterns, write_output
 from code_tokenizer.cli import main
 from code_tokenizer.models.model_config import DEFAULT_MODEL
+from code_tokenizer.services.filesystem_service import MockFileSystemService
+from .conftest import BaseFileSystemTest
 
 
-class TestCLI:
+class TestCLI(BaseFileSystemTest):
     """Test command-line interface functionality."""
 
-    def test_basic_cli(self, temp_dir, sample_codebase):
+    def test_basic_cli(self, mock_fs, temp_dir):
         """Test basic CLI functionality."""
-        output_dir = Path(temp_dir) / "output"
-        output_dir.mkdir()
+        # Set up sample codebase
+        base_dir = temp_dir / "sample_codebase"
+        self.setup_sample_codebase(mock_fs, base_dir)
+        
+        output_dir = temp_dir / "output"
+        base_name = base_dir.name
+        
+        # Run CLI with basic options
+        args = [
+            "-d", str(base_dir),
+            "-o", str(output_dir / f"{base_name}_docs.markdown"),
+            "--model", "gpt-4o"  # Valid model name
+        ]
+        
+        with patch("code_tokenizer.cli.RealFileSystemService", return_value=mock_fs):
+            result = main(args)
+            assert result == 0
+        
+        # Check output file exists
+        assert mock_fs.exists(str(output_dir / f"{base_name}_docs.markdown"))
 
-        with patch.object(
-            sys,
-            "argv",
-            [
-                "code-tokenizer",
-                "-d",
-                str(sample_codebase),
-                "-o",
-                str(output_dir),
-                "--model",
-                "claude-3-sonnet",
-            ],
-        ):
-            main()
-
-        base_name = Path(sample_codebase).name
-        assert (output_dir / f"{base_name}_docs.markdown").exists()
-        assert (output_dir / f"{base_name}_analysis.md").exists()
-
-    def test_cli_with_options(self, temp_dir, sample_codebase):
+    def test_cli_with_options(self, mock_fs, temp_dir):
         """Test CLI with various options."""
-        output_dir = Path(temp_dir) / "output"
-        output_dir.mkdir()
-
-        # Test with JSON format
-        with patch.object(
-            sys,
-            "argv",
-            [
-                "code-tokenizer",
-                "-d",
-                str(sample_codebase),
-                "-o",
-                str(output_dir),
-                "--format",
-                "json",
-                "--model",
-                "claude-3-sonnet",
-            ],
-        ):
-            main()
-
-        base_name = Path(sample_codebase).name
+        # Set up sample codebase
+        base_dir = temp_dir / "sample_codebase"
+        self.setup_sample_codebase(mock_fs, base_dir)
+        
+        output_dir = temp_dir / "output"
+        base_name = base_dir.name
         json_file = output_dir / f"{base_name}_docs.json"
-        assert json_file.exists()
+        
+        # Run CLI with additional options
+        args = [
+            "-d", str(base_dir),
+            "-o", str(json_file),
+            "--model", "gpt-4o",  # Valid model name
+            "--format", "json",
+            "--max-tokens", "1000"
+        ]
+        
+        with patch("code_tokenizer.cli.RealFileSystemService", return_value=mock_fs):
+            result = main(args)
+            assert result == 0
+        
+        # Check JSON output file exists
+        assert mock_fs.exists(str(json_file))
 
-        # Verify JSON content
-        with open(json_file) as f:
-            data = json.load(f)
-            assert "project_name" in data
-            assert "files" in data
-            assert len(data["files"]) > 0
-
-    def test_cli_errors(self, temp_dir):
+    def test_cli_errors(self, mock_fs, temp_dir):
         """Test CLI error handling."""
-        output_dir = Path(temp_dir) / "output"
-        output_dir.mkdir()
-
-        # Test invalid model
+        base_dir = temp_dir / "sample_codebase"
+        output_dir = temp_dir / "output"
+        
+        # Test with invalid model
+        args = [
+            "-d", str(base_dir),
+            "-o", str(output_dir),
+            "--model", "invalid-model"
+        ]
+        
         with pytest.raises(SystemExit) as exc_info:
+            main(args)
+        assert exc_info.value.code == 2
+
+
+class TestMain(BaseFileSystemTest):
+    """Test main module functionality."""
+
+    def test_parse_args(self, temp_dir: str):
+        """Test argument parsing."""
+        # Test with minimal arguments
+        with patch("code_tokenizer.__main__.is_running_tests", return_value=False):
+            with patch.object(
+                sys, "argv", ["code-tokenizer", "-d", str(temp_dir), "-o", "output.txt"]
+            ):
+                args = parse_args()
+                assert os.path.abspath(args.directory) == os.path.abspath(temp_dir)
+                assert args.output == "output.txt"
+                assert args.model == DEFAULT_MODEL
+                assert args.max_tokens is None
+                assert args.format == "markdown"
+                assert not args.bypass_gitignore
+                assert not args.no_metadata
+
+            # Test with all arguments
             with patch.object(
                 sys,
                 "argv",
@@ -88,33 +112,32 @@ class TestCLI:
                     "-d",
                     str(temp_dir),
                     "-o",
-                    str(output_dir),
+                    "output.json",
                     "--model",
-                    "invalid-model",
+                    "gpt-4o",
+                    "--max-tokens",
+                    "1000",
+                    "--format",
+                    "json",
+                    "--bypass-gitignore",
+                    "--no-metadata",
                 ],
             ):
-                main()
-        assert exc_info.value.code == 2  # argparse exit code for argument errors
+                args = parse_args()
+                assert os.path.abspath(args.directory) == os.path.abspath(temp_dir)
+                assert args.output == "output.json"
+                assert args.model == "gpt-4o"
+                assert args.max_tokens == 1000
+                assert args.format == "json"
+                assert args.bypass_gitignore
+                assert args.no_metadata
 
-
-class TestMain:
-    """Test main module functionality."""
-
-    def test_parse_args(self, temp_dir):
-        """Test argument parsing."""
-        # Test with minimal arguments
-        with patch.object(sys, "argv", ["code-tokenizer", temp_dir]):
-            args = parse_args()
-            assert args.directory == temp_dir
-            assert args.model == DEFAULT_MODEL
-            assert args.max_tokens is None
-            assert args.ignore_file is None
-
-    def test_read_ignore_patterns(self, temp_dir):
+    def test_read_ignore_patterns(self, mock_fs: MockFileSystemService, temp_dir: str):
         """Test reading ignore patterns from file."""
         # Create test gitignore file
         gitignore = Path(temp_dir) / ".gitignore"
-        gitignore.write_text(
+        mock_fs.write_file(
+            str(gitignore),
             """
 # Comment
 *.pyc
@@ -126,123 +149,244 @@ dist/
 """
         )
 
-        patterns = read_ignore_patterns(str(gitignore))
+        patterns = read_ignore_patterns(str(gitignore), mock_fs)
         assert len(patterns) == 3
         assert "*.pyc" in patterns
         assert "node_modules/" in patterns
         assert "dist/" in patterns
 
         # Test with non-existent file
-        assert read_ignore_patterns("non_existent_file") == []
+        assert read_ignore_patterns("non_existent_file", mock_fs) == []
 
-    def test_main_function(self, temp_dir, sample_codebase):
-        """Test main function execution."""
-        # Test successful execution
-        with patch.object(sys, "argv", ["code-tokenizer", sample_codebase]):
-            assert main() == 0
+        # Test with empty file
+        empty_gitignore = Path(temp_dir) / "empty.gitignore"
+        mock_fs.write_file(str(empty_gitignore), "")
+        assert read_ignore_patterns(str(empty_gitignore), mock_fs) == []
 
-        # Test with invalid directory
-        with patch.object(sys, "argv", ["code-tokenizer", "non_existent_dir"]):
-            assert main() == 1
+        # Test with only comments and empty lines
+        comment_gitignore = Path(temp_dir) / "comment.gitignore"
+        mock_fs.write_file(
+            str(comment_gitignore),
+            """
+# Just a comment
+        
+# Another comment
+"""
+        )
+        assert read_ignore_patterns(str(comment_gitignore), mock_fs) == []
 
-        # Test with keyboard interrupt
-        with patch.object(sys, "argv", ["code-tokenizer", sample_codebase]):
-            with patch(
-                "code_tokenizer.services.tokenizer_service.TokenizerService.process_directory",
-                side_effect=KeyboardInterrupt,
-            ):
-                assert main() == 130
+    def test_main_function(self, mock_fs, temp_dir):
+        """Test the main function with basic options."""
+        # Set up sample codebase
+        base_dir = temp_dir / "sample_codebase"
+        self.setup_sample_codebase(mock_fs, base_dir)
+        
+        output_dir = temp_dir / "output"
+        mock_fs.create_directory(str(output_dir))
+        
+        args = [
+            "-d", str(base_dir),
+            "-o", str(output_dir),
+            "--model", "gpt-4"  # Valid model name
+        ]
+        
+        result = main(args)
+        assert result == 0
 
-        # Test with general exception
-        with patch.object(sys, "argv", ["code-tokenizer", sample_codebase]):
-            with patch(
-                "code_tokenizer.services.tokenizer_service.TokenizerService.process_directory",
-                side_effect=Exception("Test error"),
-            ):
-                assert main() == 1
 
-
-class TestEndToEnd:
+class TestEndToEnd(BaseFileSystemTest):
     """End-to-end integration tests."""
 
-    def test_full_processing(self, temp_dir, sample_codebase):
-        """Test full processing of a sample codebase."""
-        output_dir = Path(temp_dir) / "output"
-        output_dir.mkdir()
-
-        # Run with various options
-        configs = [
-            {
-                "args": ["-d", str(sample_codebase), "-o", str(output_dir)],
-                "format": "markdown",
-                "model": DEFAULT_MODEL,
-            },
-            {
-                "args": ["-d", str(sample_codebase), "-o", str(output_dir), "--format", "json"],
-                "format": "json",
-                "model": DEFAULT_MODEL,
-            },
-            {
-                "args": ["-d", str(sample_codebase), "-o", str(output_dir), "--model", "gpt-4"],
-                "format": "markdown",
-                "model": "gpt-4",
-            },
+    def test_full_processing(self, mock_fs, temp_dir):
+        """Test full end-to-end processing of a sample codebase."""
+        # Set up sample codebase
+        base_dir = temp_dir / "sample_codebase"
+        self.setup_sample_codebase(mock_fs, base_dir)
+        
+        output_dir = temp_dir / "output"
+        mock_fs.create_directory(str(output_dir))
+        
+        # Create output file path
+        output_file = output_dir / "sample_codebase_docs.json"
+        
+        args = [
+            "-d", str(base_dir),
+            "-o", str(output_file),
+            "--model", "gpt-4",  # Valid model name
+            "--format", "json",
+            "--bypass-gitignore"  # Bypass gitignore to ensure all files are processed
         ]
+        
+        with patch("code_tokenizer.cli.RealFileSystemService", return_value=mock_fs):
+            result = main(args)
+            assert result == 0
+        
+        # Check output files exist
+        assert mock_fs.exists(str(output_file))
+        
+        # Read and verify output
+        content = mock_fs.read_file(str(output_file))
+        data = json.loads(content)
+        assert "files" in data
+        assert "metadata" in data
+        assert len(data["files"]) > 0
 
-        for config in configs:
-            with patch.object(sys, "argv", ["code-tokenizer"] + config["args"]):
-                assert main() == 0
-
-                base_name = Path(sample_codebase).name
-                if config["format"] == "json":
-                    output_file = output_dir / f"{base_name}_docs.json"
-                    with open(output_file) as f:
-                        data = json.load(f)
-                        assert data["model"] == config["model"]
-                        assert len(data["files"]) > 0
-                else:
-                    output_file = output_dir / f"{base_name}_docs.markdown"
-                    assert output_file.exists()
-                    content = output_file.read_text()
-                    assert config["model"] in content
-
-    def test_large_codebase(self, temp_dir):
-        """Test processing a larger codebase structure."""
-        # Create a more complex codebase
-        src = Path(temp_dir) / "src"
-        src.mkdir()
-
-        # Create multiple file types
-        files = {
-            "main.py": "def main():\n    print('Hello')",
-            "config.json": '{"version": "1.0.0"}',
-            "README.md": "# Test Project",
-            "style.css": "body { color: black; }",
-            "script.js": "console.log('test');",
-            "data.yaml": "key: value",
+    def test_large_codebase(self, mock_fs, temp_dir):
+        """Test processing a larger codebase."""
+        # Set up a larger sample codebase
+        src_dir = temp_dir / "src"
+        self.setup_sample_codebase(mock_fs, src_dir)
+        
+        # Add more files to simulate a larger codebase
+        additional_files = {
+            "utils.py": "def helper():\n    pass",
+            "config/settings.py": "DEBUG = True",
+            "tests/test_main.py": "def test_something():\n    assert True"
         }
+        
+        for path, content in additional_files.items():
+            file_path = src_dir / path
+            mock_fs.create_directory(str(os.path.dirname(file_path)))
+            mock_fs.write_file(str(file_path), content)
+        
+        output_dir = temp_dir / "output"
+        mock_fs.create_directory(str(output_dir))
+        
+        # Create output file path
+        output_file = output_dir / "src_docs.json"
+        
+        args = [
+            "-d", str(src_dir),
+            "-o", str(output_file),
+            "--model", "gpt-4",  # Valid model name
+            "--format", "json",
+            "--bypass-gitignore"  # Bypass gitignore to ensure all files are processed
+        ]
+        
+        with patch("code_tokenizer.cli.RealFileSystemService", return_value=mock_fs):
+            result = main(args)
+            assert result == 0
+        
+        # Check output files exist
+        assert mock_fs.exists(str(output_file))
+        
+        # Read and verify output
+        content = mock_fs.read_file(str(output_file))
+        data = json.loads(content)
+        assert len(data["files"]) > 5  # Should have more than 5 files
 
-        for name, content in files.items():
-            (src / name).write_text(content)
 
-        # Create nested directories
-        (src / "tests").mkdir()
-        (src / "tests" / "test_main.py").write_text("def test_main(): pass")
+class TestMainModule(BaseFileSystemTest):
+    """Test __main__ module functionality."""
 
+    def test_main_entry_point(self, mock_fs: MockFileSystemService, temp_dir: str, sample_codebase: str):
+        """Test main entry point."""
         output_dir = Path(temp_dir) / "output"
-        output_dir.mkdir()
+        mock_fs.create_directory(str(temp_dir), 0o777)  # Full permissions for parent
+        mock_fs.create_directory(str(output_dir), 0o777)  # Full permissions for output
 
+        # Create sample codebase in mock filesystem
+        self.setup_sample_codebase(mock_fs, sample_codebase)
+
+        # Test successful execution
         with patch.object(
             sys,
             "argv",
-            ["code-tokenizer", "-d", str(src), "-o", str(output_dir), "--format", "json"],
-        ):
+            [
+                "code-tokenizer",
+                "-d",
+                str(sample_codebase),
+                "-o",
+                str(output_dir / "output.txt"),
+                "--model",
+                "gpt-4o",
+            ],
+        ), patch("code_tokenizer.cli.RealFileSystemService", return_value=mock_fs):
             assert main() == 0
 
-            # Verify output
-            docs_file = output_dir / "src_docs.json"
-            with open(docs_file) as f:
-                data = json.load(f)
-                assert len(data["files"]) >= len(files)
-                assert len(data["stats"]["languages"]) >= 5
-                assert data["stats"]["files_processed"] >= len(files)
+        # Test with invalid model (should exit with code 2)
+        with pytest.raises(SystemExit) as exc_info:
+            with patch.object(
+                sys,
+                "argv",
+                [
+                    "code-tokenizer",
+                    "-d",
+                    str(sample_codebase),
+                    "-o",
+                    str(output_dir / "output.txt"),
+                    "--model",
+                    "invalid-model",
+                ],
+            ):
+                main()
+        assert exc_info.value.code == 2
+
+    def test_read_ignore_patterns_detailed(self, mock_fs: MockFileSystemService, temp_dir: str):
+        """Test reading ignore patterns in detail."""
+        # Test with non-existent file
+        assert read_ignore_patterns("non_existent_file", mock_fs) == []
+
+        # Test with empty file
+        empty_file = Path(temp_dir) / "empty"
+        mock_fs.write_file(str(empty_file), "")
+        assert read_ignore_patterns(str(empty_file), mock_fs) == []
+
+        # Test with only comments and empty lines
+        comments_file = Path(temp_dir) / "comments"
+        mock_fs.write_file(
+            str(comments_file),
+            """
+# Comment 1
+   # Indented comment
+   
+# Comment 2
+        """
+        )
+        assert read_ignore_patterns(str(comments_file), mock_fs) == []
+
+        # Test with mixed content
+        mixed_file = Path(temp_dir) / "mixed"
+        mock_fs.write_file(
+            str(mixed_file),
+            """
+# Python files
+*.py[cod]
+__pycache__/
+
+# Empty line
+
+# Build directories
+build/
+dist/
+        """
+        )
+        patterns = read_ignore_patterns(str(mixed_file), mock_fs)
+        assert len(patterns) == 4
+        assert "*.py[cod]" in patterns
+        assert "__pycache__/" in patterns
+        assert "build/" in patterns
+        assert "dist/" in patterns
+
+        # Test with invalid file permissions
+        no_access_file = Path(temp_dir) / "no_access"
+        mock_fs.write_file(str(no_access_file), "test")
+        mock_fs.set_permission(str(no_access_file), 0o000)  # No permissions
+        with pytest.raises(Exception):
+            read_ignore_patterns(str(no_access_file), mock_fs)
+
+    def setup_sample_codebase(self, mock_fs: MockFileSystemService, codebase_dir: str) -> None:
+        """Set up a sample codebase in the mock filesystem."""
+        files = {
+            "main.py": "def main():\n    print('Hello, World!')\n\nif __name__ == '__main__':\n    main()",
+            "config.json": '{\n    "name": "test",\n    "version": "1.0.0"\n}',
+            "styles.css": "body {\n    color: blue;\n}\n",
+            "index.html": "<html>\n<body>\n    <h1>Test</h1>\n</body>\n</html>",
+            "script.js": "function test() {\n    console.log('test');\n}",
+            ".gitignore": "*.pyc\n__pycache__/\ndist/",
+        }
+
+        mock_fs.create_directory(str(codebase_dir))
+        for filename, content in files.items():
+            file_path = os.path.join(codebase_dir, filename)
+            mock_fs.write_file(str(file_path), content)

@@ -3,31 +3,28 @@ name: CI/CD
 on:
   push:
     branches: [ main ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main ]
-  release:
-    types: [created]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-
+    
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: "3.12"
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[dev]"
-    - name: Run tests
+    - name: Run tests with coverage
       run: |
-        pytest --cov=code_tokenizer --cov-report=xml
+        pytest --cov=code_tokenizer --cov-report=xml --cov-report=term-missing --cov-fail-under=80
     - name: Upload coverage
       uses: codecov/codecov-action@v4
       with:
@@ -38,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
         python-version: "3.12"
@@ -55,23 +52,73 @@ jobs:
     - name: Lint
       run: flake8 src/
 
-  publish:
+  release:
     needs: [test, lint]
     runs-on: ubuntu-latest
-    if: github.event_name == 'release' && github.event.action == 'created'
+    if: startsWith(github.ref, 'refs/tags/v')
     
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
         python-version: "3.12"
+    
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install build twine
+    
+    - name: Extract release notes
+      id: extract_release_notes
+      run: |
+        # Get the latest tag
+        TAG=$(git describe --tags --abbrev=0)
+        # Extract changes since the previous tag
+        PREV_TAG=$(git describe --tags --abbrev=0 HEAD^)
+        if [ $? -eq 0 ]; then
+          CHANGES=$(git log --pretty=format:"* %s" $PREV_TAG..$TAG)
+        else
+          CHANGES=$(git log --pretty=format:"* %s" $TAG)
+        fi
+        echo "CHANGES<<EOF" >> $GITHUB_ENV
+        echo "$CHANGES" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        body: ${{ env.CHANGES }}
+        draft: false
+        prerelease: false
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
     - name: Build package
       run: python -m build
+    
+    - name: Run tests on built package
+      run: |
+        pip install dist/*.whl
+        pytest
+    
+    - name: Check package
+      run: |
+        twine check dist/*
+    
+    - name: Publish to Test PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      run: |
+        twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+    
+    - name: Test install from Test PyPI
+      run: |
+        pip install --index-url https://test.pypi.org/simple/ code-tokenizer
+    
     - name: Publish to PyPI
       env:
         TWINE_USERNAME: __token__

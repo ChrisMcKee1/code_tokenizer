@@ -1,0 +1,96 @@
+[flake8]
+# Error / Violation Handling
+ignore = 
+    # Allow long lines
+    E501,
+    # Allow line break before binary operator (for readability)
+    W503,
+    # Allow line break after binary operator
+    W504,
+    # Allow whitespace before ':' (for readability)
+    E203
+
+# Line Length Configuration
+max-line-length = 100
+max-doc-length = 100
+
+# File Exclusions
+exclude = 
+    .git,
+    __pycache__,
+    build,
+    dist,
+    *.egg-info,
+    .env,
+    .venv,
+    env/,
+    venv/,
+    ENV/,
+    .tox,
+    .coverage,
+    htmlcov/,
+    *.pyc,
+    *.egg,
+    *.egg-info/,
+    .pytest_cache/,
+    .mypy_cache/
+
+# Per-file-ignores for specific cases
+per-file-ignores =
+    # Allow unused imports in __init__.py files
+    __init__.py:F401
+    # Allow long lines in test files
+    tests/*:E501
+    # Allow complexity in test files
+    tests/*:C901
+    # Allow complexity in core service functions
+    src/code_tokenizer/services/language_detector.py:C901
+    src/code_tokenizer/services/tokenizer_service.py:C901
+    src/code_tokenizer/utils/path_utils.py:C901
+
+# Statistics and Reporting
+count = True
+show-source = True
+show-error-codes = True
+statistics = True
+tee = True
+
+# Complexity
+max-complexity = 10
+
+# Select specific error codes to enable
+select = 
+    # pyflakes
+    F,
+    # pycodestyle
+    E,W,
+    # mccabe
+    C,
+    # flake8-bugbear
+    B,B9,
+    # flake8-comprehensions
+    C4,
+    # flake8-return
+    R,
+    # flake8-simplify
+    SIM,
+    # flake8-print
+    T
+
+# Docstring Checking
+docstring-convention = google
+
+# Additional Settings
+jobs = auto
+format = %(path)s:%(row)d:%(col)d: %(code)s %(text)s
+builtins = _
+max-line-complexity = 15
+max-cognitive-complexity = 15
+max-cognitive-score = 20
+min-python-version = 3.12
+
+# Output Formatting
+output-file = flake8-report.txt
+quiet = 0
+verbose = 0
+color = auto 

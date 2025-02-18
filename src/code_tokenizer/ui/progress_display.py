@@ -2,14 +2,14 @@
 
 import os
 import sys
-from typing import Dict, List, Optional, Union
+import time
+from typing import Any, Dict, List, Optional, Union
 
 from rich import box
 from rich.console import Console
 from rich.layout import Layout
-from rich.live import Live
 from rich.panel import Panel
-from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TaskID
 from rich.table import Table
 from rich.text import Text
 
@@ -184,37 +184,183 @@ def update_display(
 
 
 class ProgressDisplay:
-    """Handles progress display and updates."""
-    
-    def __init__(self) -> None:
+    """Display progress for code tokenization tasks."""
+
+    def __init__(self, test_mode: bool = False) -> None:
+        """Initialize the progress display.
+
+        Args:
+            test_mode: Whether to run in test mode (disables rich output)
+        """
+        self.test_mode = test_mode
         self.current = 0
         self.total = 0
-        self.file_path = ""
+        self.file_path = None
+        self.language_stats: Dict[str, int] = {}
         self.errors: List[str] = []
-        self.layout = create_display_layout()
+        self.console = Console(record=test_mode, force_terminal=not test_mode)
         self.progress = create_progress_group()
-        
-    def update_progress(
-        self,
-        current: int,
-        total: int,
-        file_path: str = "",
-        errors: Optional[List[str]] = None,
-    ) -> None:
-        """Update the progress display with current status."""
-        self.current = current
-        self.total = total
-        self.file_path = file_path
-        self.errors = errors or []
-        self._update_display()
-        
-    def _update_display(self) -> None:
-        """Update the live display with current progress."""
+        self.layout = create_display_layout()
+
+    def create_display_component(self, component_type: str, data: Any = None) -> Optional[Union[Table, Panel, Progress]]:
+        """Create a display component based on the type.
+
+        Args:
+            component_type: Type of component to create
+            data: Data to display in the component
+
+        Returns:
+            Optional display component
+        """
+        if component_type == "table":
+            table = Table(show_header=False, box=box.SIMPLE)
+            table.add_column("Metric", style="bold cyan")
+            table.add_column("Value")
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    table.add_row(str(key), str(value))
+            return table
+        elif component_type == "progress":
+            if isinstance(data, dict):
+                file_path = data.get("file", "")
+                current = data.get("current", 0)
+                total = data.get("total", 0)
+                self.update_display(file_path, current, total)
+            return self.progress
+        elif component_type == "panel":
+            if isinstance(data, str):
+                return Panel(data, border_style="blue")
+            return Panel(str(data), border_style="blue")
+        return None
+
+    def update_display(self, file_path: Optional[str] = None, current: Optional[int] = None, 
+                      total: Optional[int] = None, errors: Optional[List[str]] = None) -> None:
+        """Update the display with current progress.
+
+        Args:
+            file_path: Current file being processed
+            current: Current progress value
+            total: Total progress value
+            errors: List of error messages
+        """
+        if file_path:
+            self.file_path = file_path
+        if current is not None:
+            self.current = current
+        if total is not None:
+            self.total = total
+        if errors:
+            self.errors.extend(errors)
+
+        if self.test_mode:
+            self.console.print(f"Processing: {self.file_path}")
+            self.console.print(f"Progress: {self.current}/{self.total}")
+            if self.errors:
+                self.console.print("Errors:", style="red")
+                for error in self.errors:
+                    self.console.print(f"• {error}", style="red")
+            return
+
+        stats = {
+            "files_processed": self.current,
+            "total_files": self.total,
+            "languages": self.language_stats
+        }
+
         update_display(
             self.layout,
             self.progress,
-            {"current": self.current, "total": self.total},
+            stats,
             self.file_path,
-            f"Processing {self.current}/{self.total}",
+            f"Processing file {self.current} of {self.total}",
             self.errors
         )
+
+    def update_language_stats(self, language: str) -> None:
+        """Update language statistics.
+
+        Args:
+            language: Detected language
+        """
+        self.language_stats[language] = self.language_stats.get(language, 0) + 1
+
+    def add_error(self, file_path: str, error_message: str) -> None:
+        """Add an error message for a file.
+
+        Args:
+            file_path: Path to the file with the error
+            error_message: The error message
+        """
+        self.errors.append(error_message)
+
+    def get_stats_display(self) -> str:
+        """Get a string representation of the current statistics.
+
+        Returns:
+            str: Statistics display string
+        """
+        stats = []
+        stats.append(f"Files Processed: {self.current}")
+        
+        if self.language_stats:
+            lang_stats = ", ".join(
+                f"{lang}: {count}" 
+                for lang, count in sorted(self.language_stats.items())
+            )
+            stats.append(lang_stats)
+            
+        if self.errors:
+            stats.append(f"Skipped Files: {len(self.errors)}")
+            
+        return "\n".join(stats)
+
+    def set_total(self, total: int) -> None:
+        """Set the total number of files to process.
+
+        Args:
+            total: Total number of files
+        """
+        self.total = total
+        if not self.test_mode and self.progress:
+            self.progress.update(self.progress.tasks[0], total=total)
+
+    def finish(self) -> None:
+        """Complete the progress display."""
+        if not self.test_mode and self.progress:
+            self.progress.stop()
+
+    def error(self, message: str) -> None:
+        """Display an error message.
+
+        Args:
+            message: Error message to display
+        """
+        if not self.test_mode and self.console:
+            self.console.print(f"[red]Error: {message}[/red]")
+
+    def warning(self, message: str) -> None:
+        """Display a warning message.
+
+        Args:
+            message: Warning message to display
+        """
+        if not self.test_mode and self.console:
+            self.console.print(f"[yellow]Warning: {message}[/yellow]")
+
+    def info(self, message: str) -> None:
+        """Display an info message.
+
+        Args:
+            message: Info message to display
+        """
+        if not self.test_mode and self.console:
+            self.console.print(f"[blue]Info: {message}[/blue]")
+
+    def success(self, message: str) -> None:
+        """Display a success message.
+
+        Args:
+            message: Success message to display
+        """
+        if not self.test_mode and self.console:
+            self.console.print(f"[green]Success: {message}[/green]")

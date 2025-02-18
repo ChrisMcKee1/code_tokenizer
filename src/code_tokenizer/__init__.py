@@ -16,7 +16,7 @@ __version__ = os.getenv("VERSION", "0.1.0")
 # Configuration with defaults
 config: Dict[str, Any] = {
     # Default settings
-    "DEFAULT_MODEL": os.getenv("DEFAULT_MODEL", "gpt-4"),
+    "DEFAULT_MODEL": os.getenv("DEFAULT_MODEL", "gpt-4o"),
     "DEFAULT_MAX_TOKENS": int(os.getenv("DEFAULT_MAX_TOKENS", "2000")),
     "DEFAULT_OUTPUT_FORMAT": os.getenv("DEFAULT_OUTPUT_FORMAT", "markdown"),
     # Performance settings

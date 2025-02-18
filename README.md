@@ -5,7 +5,7 @@
 <div align="center">
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python Version](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/ChrisMcKee1/code_tokenizer/releases)
 
@@ -31,6 +31,9 @@ Code Tokenizer helps you prepare your codebase for Large Language Models (LLMs) 
 ## 🚀 Quick Start
 
 ### Installation
+
+> [!IMPORTANT]
+> Code Tokenizer requires Python 3.12 or higher. Make sure you have the correct version installed before proceeding.
 
 Choose one of these installation methods:
 
@@ -184,20 +187,27 @@ code-tokenizer -d ./my-project -o ./output --format json
 
 ## 🛠️ Development
 
+### Running Tests
+
 ```bash
-# Clone the repo
-git clone https://github.com/ChrisMcKee1/code_tokenizer.git
-cd code_tokenizer
-
-# Set up environment
-python -m venv venv
-source venv/bin/activate  # or `venv\Scripts\activate` on Windows
-
-# Install dev version
-pip install -e .
-
-# Run tests
 pytest
+```
+
+### Code Style
+
+This project uses:
+- Black for code formatting
+- isort for import sorting
+- mypy for type checking
+- flake8 for linting
+
+Run all checks:
+
+```bash
+black .
+isort .
+mypy .
+flake8
 ```
 
 ## 🤝 Contributing
