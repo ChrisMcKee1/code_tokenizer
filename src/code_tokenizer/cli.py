@@ -3,11 +3,13 @@
 import argparse
 import os
 import sys
+from argparse import ArgumentParser, Namespace
+from typing import List, Optional
 
+from .__main__ import read_ignore_patterns, write_output
 from .models.model_config import DEFAULT_MODEL, MODEL_ENCODINGS, TokenizerConfig
-from .services.tokenizer_service import TokenizerService
 from .services.filesystem_service import RealFileSystemService
-from .__main__ import write_output, read_ignore_patterns
+from .services.tokenizer_service import TokenizerService
 
 
 def create_argument_parser():
@@ -39,10 +41,10 @@ def create_argument_parser():
 
 def parse_args(args=None):
     """Parse command line arguments.
-    
+
     Args:
         args (List[str], optional): Command line arguments. Defaults to None.
-        
+
     Returns:
         argparse.Namespace: Parsed arguments
     """
@@ -52,57 +54,58 @@ def parse_args(args=None):
 
 def main(args=None):
     """Main entry point for the code tokenizer.
-    
+
     Args:
         args (List[str], optional): Command line arguments. Defaults to None.
-        
+
     Returns:
         int: Exit code
     """
     try:
         if args is None:
             args = sys.argv[1:]
-            
+
         parsed_args = parse_args(args)
         fs_service = RealFileSystemService()
-        
+
         # Create output directory if it doesn't exist
         output_dir = os.path.dirname(parsed_args.output)
         if output_dir:
             fs_service.create_directory(output_dir)
-        
+
         # Create tokenizer config
-        config = TokenizerConfig({
-            "model_name": parsed_args.model,
-            "max_tokens": parsed_args.max_tokens,
-            "bypass_gitignore": parsed_args.bypass_gitignore,
-            "base_dir": parsed_args.directory,
-            "output_format": parsed_args.format,
-            "output_dir": output_dir,
-            "include_metadata": not parsed_args.no_metadata
-        })
-        
+        config = TokenizerConfig(
+            {
+                "model_name": parsed_args.model,
+                "max_tokens": parsed_args.max_tokens,
+                "bypass_gitignore": parsed_args.bypass_gitignore,
+                "base_dir": parsed_args.directory,
+                "output_format": parsed_args.format,
+                "output_dir": output_dir,
+                "include_metadata": not parsed_args.no_metadata,
+            }
+        )
+
         # Create tokenizer service
         tokenizer = TokenizerService(config, fs_service)
-        
+
         # Process the directory
         result = tokenizer.process_directory(
-            directory=parsed_args.directory,
-            output_path=parsed_args.output
+            directory=parsed_args.directory, output_path=parsed_args.output
         )
-        
+
         # Check if any files were processed
         if result["stats"]["files_processed"] == 0:
             print("No files were processed. Check your directory path and gitignore settings.")
             return 0
-            
+
         # Check for errors
         if result["failed_files"]:
             print(f"Failed to process {len(result['failed_files'])} files.")
             return 1
-            
+
         return 0
-        
+
     except KeyboardInterrupt:
         print("\nOperation cancelled by user")
         return 130

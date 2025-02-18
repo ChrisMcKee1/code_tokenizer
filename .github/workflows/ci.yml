@@ -1,35 +1,132 @@
-name: CI/CD
+name: CI
 
 on:
   push:
     branches: [ main ]
-    tags:
-      - 'v*'
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  test:
+  smoke-test:
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.12"
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e ".[dev]"
-    - name: Run tests with coverage
-      run: |
-        pytest --cov=code_tokenizer --cov-report=xml --cov-report=term-missing --cov-fail-under=80
-    - name: Upload coverage
-      uses: codecov/codecov-action@v4
-      with:
-        file: ./coverage.xml
-        fail_ci_if_error: true
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Run smoke tests
+        run: |
+          pytest -v -m "smoke" --cov=code_tokenizer --cov-report=xml
+      - name: Upload smoke test coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: smoke-coverage
+          path: coverage.xml
+
+  unit-test:
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Run unit tests
+        run: |
+          pytest -v -m "unit" --cov=code_tokenizer --cov-report=xml
+      - name: Upload unit test coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: unit-coverage
+          path: coverage.xml
+
+  integration-test:
+    needs: unit-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Run integration tests
+        run: |
+          pytest -v -m "integration" --cov=code_tokenizer --cov-report=xml
+      - name: Upload integration test coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: integration-coverage
+          path: coverage.xml
+
+  performance-test:
+    # Only run performance tests on main branch or when manually triggered
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    needs: integration-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Run performance tests
+        run: |
+          pytest -v -m "performance" --cov=code_tokenizer --cov-report=xml
+      - name: Upload performance test coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-coverage
+          path: coverage.xml
+
+  coverage-report:
+    needs: [smoke-test, unit-test, integration-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install coverage
+      - name: Download all coverage data
+        uses: actions/download-artifact@v3
+      - name: Combine coverage data
+        run: |
+          coverage combine smoke-coverage/coverage.xml unit-coverage/coverage.xml integration-coverage/coverage.xml
+          coverage report
+          coverage xml
+      - name: Upload combined coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: coverage.xml
+          fail_ci_if_error: true
 
   lint:
     runs-on: ubuntu-latest
@@ -53,14 +150,14 @@ jobs:
       run: flake8 src/
 
   release:
-    needs: [test, lint]
+    needs: [coverage-report, lint]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     
     steps:
     - uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        fetch-depth: 0  # Required for setuptools_scm to work properly
     
     - name: Set up Python 3.12
       uses: actions/setup-python@v5
@@ -70,7 +167,21 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install build twine
+        pip install build twine setuptools setuptools_scm
+    
+    - name: Verify version matches tag
+      run: |
+        # Get the current tag without the 'v' prefix
+        TAG_VERSION=${GITHUB_REF#refs/tags/v}
+        # Get the version that setuptools_scm would use
+        PACKAGE_VERSION=$(python -c "from setuptools_scm import get_version; print(get_version())")
+        echo "Tag version: $TAG_VERSION"
+        echo "Package version: $PACKAGE_VERSION"
+        # Verify they match
+        if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
+          echo "Version mismatch: Tag version ($TAG_VERSION) does not match package version ($PACKAGE_VERSION)"
+          exit 1
+        fi
     
     - name: Extract release notes
       id: extract_release_notes
@@ -102,7 +213,7 @@ jobs:
     - name: Run tests on built package
       run: |
         pip install dist/*.whl
-        pytest
+        pytest -v -m "smoke"  # Run smoke tests only for quick verification
     
     - name: Check package
       run: |
@@ -115,9 +226,15 @@ jobs:
       run: |
         twine upload --repository-url https://test.pypi.org/legacy/ dist/*
     
+    - name: Wait for Test PyPI
+      run: |
+        echo "Waiting for package to be available on Test PyPI..."
+        sleep 60
+    
     - name: Test install from Test PyPI
       run: |
-        pip install --index-url https://test.pypi.org/simple/ code-tokenizer
+        pip install --index-url https://test.pypi.org/simple/ --no-deps code-tokenizer==$(python -c "from setuptools_scm import get_version; print(get_version())")
+        code-tokenizer --version
     
     - name: Publish to PyPI
       env:

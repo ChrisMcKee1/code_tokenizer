@@ -1,22 +1,26 @@
 """Test configuration and fixtures."""
 
 import os
-import tempfile
-from typing import Dict, Generator, Optional
-from pathlib import Path
 import shutil
+import tempfile
+from pathlib import Path
+from typing import Dict, Generator, Optional
 
 import pytest
 
 from code_tokenizer.models.model_config import TokenizerConfig
+from code_tokenizer.services.filesystem_service import (
+    FileSystemService,
+    MockFileSystemService,
+    RealFileSystemService,
+)
 from code_tokenizer.services.tokenizer_service import TokenizerService
-from code_tokenizer.services.filesystem_service import FileSystemService, MockFileSystemService, RealFileSystemService
 
 
 @pytest.fixture(scope="module")
 def mock_fs() -> MockFileSystemService:
     """Create a mock file system service.
-    
+
     Returns:
         MockFileSystemService: Mock file system service
     """
@@ -34,7 +38,7 @@ class BaseFileSystemTest:
 
     def get_fs_service(self) -> FileSystemService:
         """Get file system service for tests.
-        
+
         Returns:
             FileSystemService: File system service instance
         """
@@ -42,17 +46,19 @@ class BaseFileSystemTest:
 
     def get_config(self) -> TokenizerConfig:
         """Get tokenizer config for tests.
-        
+
         Returns:
             TokenizerConfig: Tokenizer configuration
         """
-        return TokenizerConfig({
-            "model_name": "gpt-4o",
-            "max_tokens": 200000,
-            "output_format": "markdown",
-            "bypass_gitignore": False,
-            "include_metadata": True
-        })
+        return TokenizerConfig(
+            {
+                "model_name": "gpt-4o",
+                "max_tokens": 200000,
+                "output_format": "markdown",
+                "bypass_gitignore": False,
+                "include_metadata": True,
+            }
+        )
 
     def setup_sample_codebase(self, fs_service, base_dir):
         """Set up a sample codebase in the mock filesystem."""
@@ -61,12 +67,12 @@ class BaseFileSystemTest:
 
         # Sample files with content
         files = {
-            'main.py': 'def main():\n    print("Hello, World!")\n\nif __name__ == "__main__":\n    main()',
-            'config.json': '{\n    "name": "sample-project",\n    "version": "1.0.0"\n}',
-            'styles.css': 'body {\n    background-color: #f0f0f0;\n}',
-            'index.html': '<!DOCTYPE html>\n<html><body><h1>Hello</h1></body></html>',
-            'script.js': 'console.log("Hello from JavaScript!");',
-            '.gitignore': '*.pyc\n__pycache__\n.env'
+            "main.py": 'def main():\n    print("Hello, World!")\n\nif __name__ == "__main__":\n    main()',
+            "config.json": '{\n    "name": "sample-project",\n    "version": "1.0.0"\n}',
+            "styles.css": "body {\n    background-color: #f0f0f0;\n}",
+            "index.html": "<!DOCTYPE html>\n<html><body><h1>Hello</h1></body></html>",
+            "script.js": 'console.log("Hello from JavaScript!");',
+            ".gitignore": "*.pyc\n__pycache__\n.env",
         }
 
         # Create each file
@@ -80,10 +86,10 @@ class BaseFileSystemTest:
 @pytest.fixture
 def temp_dir(tmp_path):
     """Create a temporary directory for testing.
-    
+
     Args:
         tmp_path (Path): Pytest's temporary directory fixture
-        
+
     Returns:
         Path: Path to temporary directory
     """
@@ -93,10 +99,10 @@ def temp_dir(tmp_path):
 @pytest.fixture
 def sample_codebase(temp_dir):
     """Create a sample codebase directory.
-    
+
     Args:
         temp_dir (Path): Temporary directory
-        
+
     Returns:
         Path: Path to sample codebase
     """
@@ -105,12 +111,12 @@ def sample_codebase(temp_dir):
 
     # Sample files with content
     files = {
-        'main.py': 'def main():\n    print("Hello, World!")\n\nif __name__ == "__main__":\n    main()',
-        'config.json': '{\n    "name": "sample-project",\n    "version": "1.0.0"\n}',
-        'styles.css': 'body {\n    background-color: #f0f0f0;\n}',
-        'index.html': '<!DOCTYPE html>\n<html><body><h1>Hello</h1></body></html>',
-        'script.js': 'console.log("Hello from JavaScript!");',
-        '.gitignore': '*.pyc\n__pycache__\n.env'
+        "main.py": 'def main():\n    print("Hello, World!")\n\nif __name__ == "__main__":\n    main()',
+        "config.json": '{\n    "name": "sample-project",\n    "version": "1.0.0"\n}',
+        "styles.css": "body {\n    background-color: #f0f0f0;\n}",
+        "index.html": "<!DOCTYPE html>\n<html><body><h1>Hello</h1></body></html>",
+        "script.js": 'console.log("Hello from JavaScript!");',
+        ".gitignore": "*.pyc\n__pycache__\n.env",
     }
 
     # Create each file
@@ -131,19 +137,23 @@ def test_config(temp_dir: str) -> TokenizerConfig:
     Returns:
         TokenizerConfig: Test configuration
     """
-    return TokenizerConfig({
-        "base_dir": temp_dir,
-        "output_dir": os.path.join(temp_dir, "output"),
-        "model_name": "gpt-4o",
-        "max_tokens": 200000,
-        "output_format": "markdown",
-        "bypass_gitignore": False,
-        "include_metadata": True
-    })
+    return TokenizerConfig(
+        {
+            "base_dir": temp_dir,
+            "output_dir": os.path.join(temp_dir, "output"),
+            "model_name": "gpt-4o",
+            "max_tokens": 200000,
+            "output_format": "markdown",
+            "bypass_gitignore": False,
+            "include_metadata": True,
+        }
+    )
 
 
 @pytest.fixture
-def tokenizer_service(test_config: TokenizerConfig, mock_fs: MockFileSystemService) -> TokenizerService:
+def tokenizer_service(
+    test_config: TokenizerConfig, mock_fs: MockFileSystemService
+) -> TokenizerService:
     """Create a tokenizer service for testing.
 
     Args:
@@ -155,12 +165,12 @@ def tokenizer_service(test_config: TokenizerConfig, mock_fs: MockFileSystemServi
     """
     # Set up sample files in mock filesystem
     files = {
-        'main.py': 'def main():\n    print("Hello, World!")\n\nif __name__ == "__main__":\n    main()',
-        'config.json': '{\n    "name": "sample-project",\n    "version": "1.0.0"\n}',
-        'styles.css': 'body {\n    background-color: #f0f0f0;\n}',
-        'index.html': '<!DOCTYPE html>\n<html><body><h1>Hello</h1></body></html>',
-        'script.js': 'console.log("Hello from JavaScript!");',
-        '.gitignore': '*.pyc\n__pycache__\n.env'
+        "main.py": 'def main():\n    print("Hello, World!")\n\nif __name__ == "__main__":\n    main()',
+        "config.json": '{\n    "name": "sample-project",\n    "version": "1.0.0"\n}',
+        "styles.css": "body {\n    background-color: #f0f0f0;\n}",
+        "index.html": "<!DOCTYPE html>\n<html><body><h1>Hello</h1></body></html>",
+        "script.js": 'console.log("Hello from JavaScript!");',
+        ".gitignore": "*.pyc\n__pycache__\n.env",
     }
 
     # Create each file in the mock filesystem

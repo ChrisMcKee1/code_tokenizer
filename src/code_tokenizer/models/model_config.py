@@ -1,18 +1,18 @@
 """Model configuration and encoding mappings."""
 
-from typing import Dict, List, Set, Any, Optional
 from dataclasses import dataclass
-
+from typing import Any, Dict, List, Optional, Set
 
 # Default model configuration values
 DEFAULT_MODEL = "gpt-4o"
 DEFAULT_MAX_TOKENS = 200000
 DEFAULT_OUTPUT_FORMAT = "markdown"
 
+
 @dataclass
 class TokenizerConfig:
     """Configuration for the tokenizer service."""
-    
+
     model_name: str = DEFAULT_MODEL
     max_tokens: int = DEFAULT_MAX_TOKENS
     base_dir: Optional[str] = None
@@ -52,15 +52,31 @@ class TokenizerConfig:
             if file_extensions is None:
                 # Use default extensions
                 file_extensions = {
-                    "py", "js", "ts", "jsx", "tsx",  # Code files
-                    "json", "yaml", "yml",  # Config files
-                    "txt", "md",  # Documentation
-                    "html", "css", "scss",  # Web files
-                    "sh", "bash",  # Shell scripts
-                    "xml", "ini", "conf",  # Other config files
-                    "gitignore", ".gitignore",  # Special files
+                    "py",
+                    "js",
+                    "ts",
+                    "jsx",
+                    "tsx",  # Code files
+                    "json",
+                    "yaml",
+                    "yml",  # Config files
+                    "txt",
+                    "md",  # Documentation
+                    "html",
+                    "css",
+                    "scss",  # Web files
+                    "sh",
+                    "bash",  # Shell scripts
+                    "xml",
+                    "ini",
+                    "conf",  # Other config files
+                    "gitignore",
+                    ".gitignore",  # Special files
                     "env",  # Environment files
-                    "cs", "java", "go", "rs"  # Other languages
+                    "cs",
+                    "java",
+                    "go",
+                    "rs",  # Other languages
                 }
             else:
                 # Convert to set and strip dots
@@ -72,13 +88,32 @@ class TokenizerConfig:
             if skip_extensions is None:
                 # Use default skip_extensions
                 skip_extensions = {
-                    "pyc", "pyo", "pyd",  # Python bytecode
-                    "dll", "so", "dylib",  # Binary libraries
-                    "exe", "bin", "obj",  # Executables and object files
-                    "class", "jar",  # Java bytecode
-                    "png", "jpg", "jpeg", "gif", "ico",  # Images
-                    "pdf", "doc", "docx", "xls", "xlsx",  # Documents
-                    "zip", "tar", "gz", "7z", "rar"  # Archives
+                    "pyc",
+                    "pyo",
+                    "pyd",  # Python bytecode
+                    "dll",
+                    "so",
+                    "dylib",  # Binary libraries
+                    "exe",
+                    "bin",
+                    "obj",  # Executables and object files
+                    "class",
+                    "jar",  # Java bytecode
+                    "png",
+                    "jpg",
+                    "jpeg",
+                    "gif",
+                    "ico",  # Images
+                    "pdf",
+                    "doc",
+                    "docx",
+                    "xls",
+                    "xlsx",  # Documents
+                    "zip",
+                    "tar",
+                    "gz",
+                    "7z",
+                    "rar",  # Archives
                 }
             else:
                 # Convert to set and strip dots

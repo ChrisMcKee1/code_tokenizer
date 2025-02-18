@@ -7,8 +7,8 @@ import sys
 from typing import Any, Dict, List, Optional
 
 from .models.model_config import DEFAULT_MODEL, MODEL_ENCODINGS, TokenizerConfig
-from .services.tokenizer_service import TokenizerService
 from .services.filesystem_service import FileSystemService, RealFileSystemService
+from .services.tokenizer_service import TokenizerService
 
 
 def is_running_tests() -> bool:
@@ -66,7 +66,9 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def read_ignore_patterns(ignore_file: str, fs_service: Optional[FileSystemService] = None) -> List[str]:
+def read_ignore_patterns(
+    ignore_file: str, fs_service: Optional[FileSystemService] = None
+) -> List[str]:
     """
     Read ignore patterns from a file.
 
@@ -81,7 +83,7 @@ def read_ignore_patterns(ignore_file: str, fs_service: Optional[FileSystemServic
         Exception: If the file cannot be read due to permissions.
     """
     fs_service = fs_service or RealFileSystemService()
-    
+
     if not fs_service.exists(ignore_file):
         return []
 
@@ -92,7 +94,7 @@ def read_ignore_patterns(ignore_file: str, fs_service: Optional[FileSystemServic
     try:
         content = fs_service.read_file(ignore_file)
         if isinstance(content, bytes):
-            content = content.decode('utf-8')
+            content = content.decode("utf-8")
         lines = content.splitlines()
     except Exception:
         raise Exception("Cannot read file: Permission denied")
@@ -107,11 +109,11 @@ def read_ignore_patterns(ignore_file: str, fs_service: Optional[FileSystemServic
 
 
 def write_output(
-    result: Dict[str, Any], 
-    output_path: str, 
-    output_format: str, 
+    result: Dict[str, Any],
+    output_path: str,
+    output_format: str,
     no_metadata: bool,
-    fs_service: Optional[FileSystemService] = None
+    fs_service: Optional[FileSystemService] = None,
 ) -> None:
     """Write tokenization results to output file.
 
@@ -123,7 +125,7 @@ def write_output(
         fs_service: Optional file system service to use
     """
     fs_service = fs_service or RealFileSystemService()
-    
+
     try:
         # Create output directory if it doesn't exist
         output_dir = os.path.dirname(output_path)
@@ -147,7 +149,7 @@ def write_output(
                 "files": successful_files,
                 "stats": stats,
                 "failed_files": failed_files,
-                "model": model_name
+                "model": model_name,
             }
             fs_service.write_file(docs_path, json.dumps(content, indent=2))
         else:
@@ -155,9 +157,9 @@ def write_output(
             content = [
                 "# Code Documentation\n\n",
                 f"## Model: {model_name}\n\n",
-                "## Statistics\n\n"
+                "## Statistics\n\n",
             ]
-            
+
             # Add statistics
             for key, value in stats.items():
                 if isinstance(value, dict):
@@ -167,19 +169,19 @@ def write_output(
                     content.append("\n")
                 else:
                     content.append(f"- {key}: {value}\n")
-            
+
             # Add file lists if metadata is included
             if not no_metadata:
                 if successful_files:
                     content.append("\n## Processed Files\n\n")
                     for file_path in successful_files:
                         content.append(f"- {file_path}\n")
-                
+
                 if failed_files:
                     content.append("\n## Failed Files\n\n")
                     for file_path in failed_files:
                         content.append(f"- {file_path}\n")
-            
+
             fs_service.write_file(docs_path, "".join(content))
 
         # Write analysis file
@@ -189,7 +191,7 @@ def write_output(
             "## Overview\n\n",
             f"Total files processed: {stats.get('files_processed', 0)}\n",
             f"Total tokens: {stats.get('total_tokens', 0)}\n",
-            f"Total errors: {len(failed_files)}\n"
+            f"Total errors: {len(failed_files)}\n",
         ]
 
         if failed_files:
@@ -203,11 +205,8 @@ def write_output(
         if output_format == "json":
             fs_service.write_file(output_path, json.dumps(result, indent=2))
         else:
-            content = [
-                "# Code Analysis Results\n\n",
-                "## Overview\n\n"
-            ]
-            
+            content = ["# Code Analysis Results\n\n", "## Overview\n\n"]
+
             for key, value in stats.items():
                 if isinstance(value, dict):
                     content.append(f"### {key.title()}\n")
@@ -216,12 +215,12 @@ def write_output(
                     content.append("\n")
                 else:
                     content.append(f"- {key}: {value}\n")
-            
+
             if successful_files and not no_metadata:
                 content.append("\n## Files\n\n")
                 for file_path in successful_files:
                     content.append(f"- {file_path}\n")
-            
+
             fs_service.write_file(output_path, "".join(content))
 
     except Exception as e:
@@ -242,7 +241,9 @@ def main() -> int:
         fs_service = RealFileSystemService()
 
         # Read ignore patterns
-        ignore_patterns = read_ignore_patterns(args.ignore_file, fs_service) if args.ignore_file else []
+        ignore_patterns = (
+            read_ignore_patterns(args.ignore_file, fs_service) if args.ignore_file else []
+        )
 
         # Create output directory with proper permissions
         output_dir = os.path.dirname(args.output)

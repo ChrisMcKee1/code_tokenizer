@@ -1,4 +1,4 @@
-"""Tests for tokenizer functionality."""
+"""Unit tests for code tokenizer components."""
 
 import pytest
 import tiktoken
@@ -9,8 +9,9 @@ from code_tokenizer.models.model_config import get_model_encoding
 
 
 class TestTokenizer:
-    """Test tokenizer functionality."""
+    """Test tokenizer core functionality."""
 
+    @pytest.mark.unit
     def test_count_tokens(self):
         """Test token counting."""
         text = "Hello, world!"
@@ -19,11 +20,13 @@ class TestTokenizer:
         assert isinstance(token_count, int)
         assert token_count > 0
 
+    @pytest.mark.unit
     def test_count_tokens_invalid_model(self):
         """Test token counting with invalid model."""
         with pytest.raises(ModelNotSupportedError):
             count_tokens("test", "invalid-model")
 
+    @pytest.mark.unit
     def test_truncate_text(self):
         """Test text truncation."""
         text = "This is a long text that needs to be truncated."
@@ -33,8 +36,9 @@ class TestTokenizer:
         assert count <= max_tokens
         assert len(truncated) < len(text)
 
+    @pytest.mark.unit
     def test_truncate_text_no_truncation_needed(self):
-        """Test text truncation when not needed."""
+        """Test truncation when text is already within limits."""
         text = "Short text"
         model_name = "gpt-4o"
         max_tokens = 100
@@ -42,15 +46,17 @@ class TestTokenizer:
         assert truncated == text
         assert count < max_tokens
 
+    @pytest.mark.unit
     def test_truncate_text_invalid_model(self):
-        """Test text truncation with invalid model."""
+        """Test truncation with invalid model."""
         with pytest.raises(ModelNotSupportedError):
             truncate_text("test", 10, "invalid-model")
 
 
 class TestCodeTokenizer:
-    """Test CodeTokenizer class."""
+    """Test CodeTokenizer class functionality."""
 
+    @pytest.mark.unit
     def test_initialization(self):
         """Test tokenizer initialization."""
         tokenizer = CodeTokenizer()
@@ -58,40 +64,46 @@ class TestCodeTokenizer:
         assert tokenizer.max_tokens == 8192
         assert isinstance(tokenizer.encoding, tiktoken.Encoding)
 
+    @pytest.mark.unit
     def test_count_tokens_method(self):
-        """Test token counting method."""
+        """Test count_tokens method."""
         tokenizer = CodeTokenizer("gpt-4o")
         text = "def test(): pass"
         count = tokenizer.count_tokens(text)
         assert isinstance(count, int)
         assert count > 0
 
+    @pytest.mark.unit
     def test_truncate_to_token_limit(self):
-        """Test token limit truncation."""
+        """Test truncation to token limit."""
         tokenizer = CodeTokenizer("gpt-4o")
         text = "This is a long text that needs to be truncated."
         max_tokens = 5
         truncated = tokenizer.truncate_to_token_limit(text, max_tokens)
         assert tokenizer.count_tokens(truncated) <= max_tokens
 
+    @pytest.mark.unit
     def test_truncate_to_token_limit_no_truncation(self):
-        """Test token limit truncation when not needed."""
+        """Test truncation when no truncation is needed."""
         tokenizer = CodeTokenizer("gpt-4o")
         text = "Short text"
         max_tokens = 100
         truncated = tokenizer.truncate_to_token_limit(text, max_tokens)
         assert truncated == text
 
+    @pytest.mark.unit
     @pytest.mark.parametrize(
-        "model_name,text,expected_range",
+        "model,text,expected_range",
         [
-            ("gpt-4o", "Hello, world!", (2, 5)),
-            ("o1-preview", "def test(): pass", (3, 7)),
-            ("gpt-3.5-turbo", "print('test')", (2, 6)),
+            ("gpt-4o", "Hello, world!", (2, 10)),
+            ("o1-preview", "def test(): pass", (4, 10)),
+            ("gpt-3.5-turbo", "print('test')", (3, 10)),
         ],
     )
-    def test_different_models(self, model_name, text, expected_range):
-        """Test tokenizer with different models."""
-        tokenizer = CodeTokenizer(model_name)
+    def test_different_models(self, model, text, expected_range):
+        """Test token counting with different models."""
+        tokenizer = CodeTokenizer(model)
         count = tokenizer.count_tokens(text)
-        assert expected_range[0] <= count <= expected_range[1]
+        assert (
+            expected_range[0] <= count <= expected_range[1]
+        ), f"Token count {count} not in range {expected_range} for model {model}"

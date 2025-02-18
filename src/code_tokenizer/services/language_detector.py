@@ -2,8 +2,8 @@
 
 import json
 import re
-from typing import Dict, List, Optional, Pattern
 from json.decoder import JSONDecodeError
+from typing import Dict, List, Optional, Pattern
 
 from pygments.lexers import guess_lexer_for_filename
 from pygments.util import ClassNotFound
@@ -89,6 +89,7 @@ EXTENSION_LANGUAGE_MAP = {
     ".jl": "Julia",
 }
 
+
 class LanguageDetector:
     """Detects programming languages in code files."""
 
@@ -140,28 +141,28 @@ class LanguageDetector:
         Returns:
             str: Detected language name
         """
-        if not content:
+        if not content or (isinstance(content, str) and content.isspace()):
             return "Text"
 
         # Try extension-based detection first if filename is provided
-        if filename:
+        if filename and filename.strip():
             ext = self._get_file_extension(filename)
             if ext in EXTENSION_LANGUAGE_MAP:
                 # For Python files, verify with content patterns
-                if EXTENSION_LANGUAGE_MAP[ext] == "Python":
+                if EXTENSION_LANGUAGE_MAP[ext] == "Python" and content.strip():
                     for pattern in LANGUAGE_PATTERNS["Python"]:
                         if pattern.search(content):
                             return "Python"
-                return EXTENSION_LANGUAGE_MAP[ext]
+                return EXTENSION_LANGUAGE_MAP[ext] if content.strip() else "Text"
 
         # Try pattern-based detection
         language = self._detect_by_simple_indicators(content)
-        if language != "Text":
+        if language and language != "Unknown":
             return language
 
         # Try lexer-based detection with filename hint
         try:
-            if filename:
+            if filename and filename.strip():
                 lexer = guess_lexer_for_filename(filename, content)
                 return self.normalize_language_name(lexer.name)
         except ClassNotFound:
@@ -174,6 +175,7 @@ class LanguageDetector:
         except (JSONDecodeError, TypeError):
             pass
 
+        # Return Text for unrecognized content
         return "Text"
 
     def _get_file_extension(self, filename: str) -> str:
@@ -185,7 +187,7 @@ class LanguageDetector:
         Returns:
             str: The file extension (including the dot)
         """
-        return filename[filename.rfind("."):].lower() if "." in filename else ""
+        return filename[filename.rfind(".") :].lower() if "." in filename else ""
 
     def _detect_by_simple_indicators(self, content: str) -> str:
         """Detect language using simple content indicators.
@@ -196,14 +198,16 @@ class LanguageDetector:
         Returns:
             str: Detected language name
         """
+        # Check for empty or whitespace-only content
+        if not content or content.isspace():
+            return "Text"
+
         # Check for JSON
         if content.strip().startswith("{") and content.strip().endswith("}"):
             try:
                 json.loads(content)
                 return "JSON"
-            except json.JSONDecodeError as e:
-                # Log the error message for debugging
-                print(f"JSON parsing error: {str(e)}")
+            except json.JSONDecodeError:
                 return None
 
         # Check for HTML
@@ -216,6 +220,7 @@ class LanguageDetector:
             if any(indicator in content.lower() for indicator in css_indicators):
                 return "CSS"
 
+        # Return Unknown for unrecognized content
         return "Unknown"
 
     def _resolve_language_conflicts(self, candidates: List[str], content: str) -> str:
@@ -404,7 +409,8 @@ def detect_language(content: str, filename: Optional[str] = None) -> str:
         str: Detected language name
     """
     detector = LanguageDetector()
-    return detector.detect_language(content, filename)
+    result = detector.detect_language(content, filename)
+    return "Text" if result == "Text only" else result
 
 
 def detect_language_by_patterns(content: str, filename: Optional[str] = None) -> str:

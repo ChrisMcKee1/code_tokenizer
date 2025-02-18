@@ -9,7 +9,7 @@ from rich import box
 from rich.console import Console
 from rich.layout import Layout
 from rich.panel import Panel
-from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TaskID
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskID, TextColumn
 from rich.table import Table
 from rich.text import Text
 
@@ -110,15 +110,44 @@ def create_stats_table(stats: Dict) -> Union[Table, str]:
     return table
 
 
-def create_display_layout() -> Layout:
-    """Create the display layout for the progress UI."""
+def create_display_layout(progress=None, stats=None):
+    """Create the main display layout.
+
+    Args:
+        progress: Optional progress component
+        stats: Optional stats table component
+
+    Returns:
+        Layout: The configured display layout
+    """
+    # Create the main layout
     layout = Layout()
 
-    # Create main sections
-    layout.split(Layout(name="header", size=3), Layout(name="body"), Layout(name="footer", size=10))
+    # Create sections
+    header = Layout(name="header", size=3)
+    body = Layout(name="body")
+    footer = Layout(name="footer", size=3)
 
-    # Split body into progress and stats
-    layout["body"].split_row(Layout(name="progress", ratio=2), Layout(name="stats"))
+    # Create body sections
+    progress_section = Layout(name="progress", ratio=2)
+    stats_section = Layout(name="stats")
+
+    # Add content to sections
+    header.update(Panel("Code Tokenizer", border_style="blue"))
+    progress_section.update(Panel(progress or "", title="Progress", border_style="green"))
+    stats_section.update(Panel(stats or "", title="Statistics", border_style="magenta"))
+    footer.update(Panel("", border_style="yellow"))
+
+    # Build layout structure
+    layout.split(header, body, footer)
+    body.split_row(progress_section, stats_section)
+
+    # Make sections accessible by name
+    layout.header = header
+    layout.body = body
+    layout.footer = footer
+    layout.progress = progress_section
+    layout.stats = stats_section
 
     return layout
 
@@ -202,7 +231,9 @@ class ProgressDisplay:
         self.progress = create_progress_group()
         self.layout = create_display_layout()
 
-    def create_display_component(self, component_type: str, data: Any = None) -> Optional[Union[Table, Panel, Progress]]:
+    def create_display_component(
+        self, component_type: str, data: Any = None
+    ) -> Optional[Union[Table, Panel, Progress]]:
         """Create a display component based on the type.
 
         Args:
@@ -233,8 +264,13 @@ class ProgressDisplay:
             return Panel(str(data), border_style="blue")
         return None
 
-    def update_display(self, file_path: Optional[str] = None, current: Optional[int] = None, 
-                      total: Optional[int] = None, errors: Optional[List[str]] = None) -> None:
+    def update_display(
+        self,
+        file_path: Optional[str] = None,
+        current: Optional[int] = None,
+        total: Optional[int] = None,
+        errors: Optional[List[str]] = None,
+    ) -> None:
         """Update the display with current progress.
 
         Args:
@@ -264,7 +300,7 @@ class ProgressDisplay:
         stats = {
             "files_processed": self.current,
             "total_files": self.total,
-            "languages": self.language_stats
+            "languages": self.language_stats,
         }
 
         update_display(
@@ -273,7 +309,7 @@ class ProgressDisplay:
             stats,
             self.file_path,
             f"Processing file {self.current} of {self.total}",
-            self.errors
+            self.errors,
         )
 
     def update_language_stats(self, language: str) -> None:
@@ -301,17 +337,16 @@ class ProgressDisplay:
         """
         stats = []
         stats.append(f"Files Processed: {self.current}")
-        
+
         if self.language_stats:
             lang_stats = ", ".join(
-                f"{lang}: {count}" 
-                for lang, count in sorted(self.language_stats.items())
+                f"{lang}: {count}" for lang, count in sorted(self.language_stats.items())
             )
             stats.append(lang_stats)
-            
+
         if self.errors:
             stats.append(f"Skipped Files: {len(self.errors)}")
-            
+
         return "\n".join(stats)
 
     def set_total(self, total: int) -> None:

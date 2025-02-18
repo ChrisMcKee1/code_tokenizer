@@ -93,4 +93,21 @@ filterwarnings = [
 env = [
     "PYTHONUNBUFFERED=1",
     "DISABLE_RICH_PROGRESS=1"
-] 
+]
+markers = [
+    "smoke: Quick tests that verify core functionality is working",
+    "unit: Unit tests that are fast and isolated",
+    "integration: Tests that verify component interactions",
+    "performance: Performance and benchmark tests that may take longer to run",
+    "e2e: End-to-end tests that verify full system functionality"
+]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.setuptools_scm]
+write_to = "src/code_tokenizer/_version.py"
+version_scheme = "post-release"
+local_scheme = "node-and-date"
+fallback_version = "0.0.0"
+version_file = "src/code_tokenizer/_version.py" 

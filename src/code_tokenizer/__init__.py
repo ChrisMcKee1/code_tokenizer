@@ -11,7 +11,13 @@ env_path = Path(__file__).resolve().parent.parent.parent / ".env"
 load_dotenv(env_path)
 
 # Version
-__version__ = os.getenv("VERSION", "0.1.0")
+try:
+    from ._version import version as __version__
+except ImportError:  # pragma: no cover
+    # Package is not installed, version is unknown
+    __version__ = "0.0.0"
+
+__all__ = ["__version__"]
 
 # Configuration with defaults
 config: Dict[str, Any] = {

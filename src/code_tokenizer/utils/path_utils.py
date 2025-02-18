@@ -2,22 +2,55 @@
 
 import os
 import re
-from typing import List, Optional, Set, Tuple
-import pathspec
+from typing import List, Optional, Tuple
 
 
 def normalize_path(path: str) -> str:
-    """Normalize a path to use forward slashes and handle relative paths correctly."""
+    """Normalize a path to use forward slashes and handle relative paths correctly.
+
+    Args:
+        path: The path to normalize
+
+    Returns:
+        str: The normalized path with forward slashes and resolved dot notation
+    """
+    if not path:
+        return ""
+
     # Convert backslashes to forward slashes
     normalized = path.replace("\\", "/")
 
-    # Handle relative paths starting with ../
-    if normalized.startswith("../") or normalized.startswith("..\\"):
-        return normalized
+    # Handle multiple slashes
+    while "//" in normalized:
+        normalized = normalized.replace("//", "/")
 
-    # Remove leading ./ if present
-    if normalized.startswith("./") or normalized.startswith(".\\"):
-        normalized = normalized[2:]
+    # Handle special cases
+    if normalized in [".", "./"]:
+        return "."
+    if normalized in ["..", "../"]:
+        return ".."
+
+    # Split path into components
+    parts = normalized.split("/")
+    result = []
+
+    for part in parts:
+        if part == "." or not part:
+            continue
+        elif part == "..":
+            if result and result[-1] != "..":
+                result.pop()
+            else:
+                result.append("..")
+        else:
+            result.append(part)
+
+    # Reconstruct the path
+    normalized = "/".join(result)
+
+    # Preserve root slash if present
+    if path.startswith("/"):
+        normalized = "/" + normalized
 
     return normalized
 
@@ -76,7 +109,8 @@ def should_ignore_file(file_path: str, base_dir: str, patterns: List[str]) -> bo
         if pattern.endswith("/"):
             pattern = pattern.rstrip("/")
             # Check if any directory component matches the pattern
-            # For a pattern like "node_modules/", this will match any path that has "node_modules" as a directory
+            # For a pattern like "node_modules/", this will match any path
+            # that has "node_modules" as a directory
             if pattern in path_parts[:-1]:  # Exclude the last part (filename)
                 return True
             continue
@@ -105,7 +139,8 @@ def should_ignore_file(file_path: str, base_dir: str, patterns: List[str]) -> bo
             continue
 
         # Handle exact matches
-        # For a pattern like "node_modules", this will match any path that has "node_modules" as a component
+        # For a pattern like "node_modules", this will match any path
+        # that has "node_modules" as a component
         if pattern in path_parts:
             return True
 
@@ -148,11 +183,11 @@ def get_relative_path(path: str, base_path: str) -> str:
 def should_ignore_path(path: str, patterns: List[str]) -> Tuple[bool, str]:
     """
     Check if a path should be ignored based on gitignore patterns.
-    
+
     Args:
         path: The path to check
         patterns: List of gitignore patterns
-        
+
     Returns:
         Tuple[bool, str]: (should_ignore, reason)
     """
@@ -227,14 +262,14 @@ def get_file_paths(
         List[str]: List of file paths
     """
     file_paths = []
-    
+
     # Normalize the base directory path
     directory = os.path.abspath(directory)
-    
+
     for root, _, files in os.walk(directory):
         for file in files:
             file_path = os.path.join(root, file)
-            
+
             # If bypassing gitignore, include all files
             if bypass_gitignore:
                 # Only filter by file_extensions if specified and not empty
@@ -251,11 +286,15 @@ def get_file_paths(
                 continue
 
             # Skip files with unwanted extensions
-            if skip_extensions and any(file.lower().endswith(ext.lower()) for ext in skip_extensions):
+            if skip_extensions and any(
+                file.lower().endswith(ext.lower()) for ext in skip_extensions
+            ):
                 continue
 
             # Only include files with wanted extensions (if specified)
-            if file_extensions and not any(file.lower().endswith(ext.lower()) for ext in file_extensions):
+            if file_extensions and not any(
+                file.lower().endswith(ext.lower()) for ext in file_extensions
+            ):
                 continue
 
             file_paths.append(file_path)

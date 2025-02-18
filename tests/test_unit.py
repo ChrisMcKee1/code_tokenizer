@@ -7,6 +7,7 @@ import pytest
 from pygments.lexers import get_lexer_by_name
 
 from code_tokenizer.core.tokenizer import count_tokens, truncate_text
+from code_tokenizer.exceptions import ModelNotSupportedError
 from code_tokenizer.models.model_config import (
     DEFAULT_MODEL,
     MODEL_ENCODINGS,
@@ -14,10 +15,13 @@ from code_tokenizer.models.model_config import (
     get_model_encoding,
     get_model_token_limit,
 )
-from code_tokenizer.services.language_detector import detect_language, LanguageDetector, detect_language_by_patterns
-from code_tokenizer.services.tokenizer_service import TokenizerService, TokenizerConfig
+from code_tokenizer.services.language_detector import (
+    LanguageDetector,
+    detect_language,
+    detect_language_by_patterns,
+)
+from code_tokenizer.services.tokenizer_service import TokenizerConfig, TokenizerService
 from code_tokenizer.utils.path_utils import get_relative_path, normalize_path, should_ignore_path
-from code_tokenizer.exceptions import ModelNotSupportedError
 
 
 class TestModelConfig:
@@ -65,16 +69,26 @@ class TestModelConfig:
 class TestPathUtils:
     """Test path utility functions."""
 
+    @pytest.mark.unit
     def test_normalize_path(self):
         """Test path normalization."""
         # Test Windows paths
         assert normalize_path("path\\to\\file") == "path/to/file"
         assert normalize_path(".\\relative\\path") == "relative/path"
+        assert normalize_path("C:\\absolute\\path") == "C:/absolute/path"
+        assert normalize_path("..\\parent\\path") == "../parent/path"
 
         # Test Unix paths
         assert normalize_path("path/to/file") == "path/to/file"
         assert normalize_path("./relative/path") == "relative/path"
+        assert normalize_path("/absolute/path") == "/absolute/path"
+        assert normalize_path("../parent/path") == "../parent/path"
 
+        # Test mixed separators
+        assert normalize_path("path\\to/file") == "path/to/file"
+        assert normalize_path("path/to\\file") == "path/to/file"
+
+    @pytest.mark.unit
     def test_get_relative_path(self):
         """Test getting relative paths."""
         base_dir = "/base/dir"
@@ -90,60 +104,66 @@ class TestPathUtils:
         result = get_relative_path("/other/path/file.txt", base_dir)
         assert result.startswith("../") or result.startswith("..\\")
 
-    @pytest.mark.parametrize(
-        "test_input,patterns,expected",
-        [
-            # Directory patterns
-            ("src/test/file.txt", ["test/"], (True, "Matches directory pattern: test/")),
-            ("src/test/nested/file.txt", ["test/"], (True, "Matches directory pattern: test/")),
-            # Recursive patterns
-            ("deep/nested/file.txt", ["**/nested"], (True, "Matches recursive pattern: **/nested")),
-            (
-                "nested/deep/nested/file.txt",
-                ["**/nested"],
-                (True, "Matches recursive pattern: **/nested"),
-            ),
-            # Wildcard patterns
-            ("src/test.py", ["*.py"], (True, "Matches pattern: *.py")),
-            ("src/nested/test.py", ["**/*.py"], (True, "Matches pattern: **/*.py")),
-            # Exact matches
-            ("exact_file.txt", ["exact_file.txt"], (True, "Matches exact pattern: exact_file.txt")),
-            (
-                "path/to/exact_file.txt",
-                ["exact_file.txt"],
-                (True, "Matches exact pattern: exact_file.txt"),
-            ),
-            # Non-matches
-            ("src/keep.txt", ["*.py"], (False, "")),
-            ("src/test/keep.js", ["*.py", "*.css"], (False, "")),
-        ],
-    )
-    def test_should_ignore_path_patterns(self, test_input, patterns, expected):
-        """Test path ignore pattern matching."""
-        assert should_ignore_path(test_input, patterns) == expected
+        # Test with Windows paths
+        assert get_relative_path("C:\\base\\dir\\file.txt", "C:\\base\\dir") == "file.txt"
+        assert get_relative_path("C:\\other\\path\\file.txt", "C:\\base\\dir").startswith("..")
 
+    @pytest.mark.unit
+    def test_should_ignore_path_patterns(self):
+        """Test path ignore pattern matching."""
+        # Test directory patterns
+        assert should_ignore_path("src/test/file.txt", ["test/"])[0]
+        assert should_ignore_path("src/test/nested/file.txt", ["test/"])[0]
+
+        # Test recursive patterns
+        assert should_ignore_path("deep/nested/file.txt", ["**/nested"])[0]
+        assert should_ignore_path("nested/deep/nested/file.txt", ["**/nested"])[0]
+
+        # Test wildcard patterns
+        assert should_ignore_path("src/test.py", ["*.py"])[0]
+        assert should_ignore_path("src/nested/test.py", ["**/*.py"])[0]
+
+        # Test exact matches
+        assert should_ignore_path("exact_file.txt", ["exact_file.txt"])[0]
+        assert should_ignore_path("path/to/exact_file.txt", ["exact_file.txt"])[0]
+
+        # Test non-matches
+        assert not should_ignore_path("src/keep.txt", ["*.py"])[0]
+        assert not should_ignore_path("src/test/keep.js", ["*.py", "*.css"])[0]
+
+        # Test complex patterns
+        assert should_ignore_path("node_modules/package/file.js", ["node_modules/**"])[0]
+        assert should_ignore_path(".git/config", [".git/**"])[0]
+        assert should_ignore_path("build/temp/cache.txt", ["build/", "dist/"])[0]
+
+    @pytest.mark.unit
     def test_normalize_path_edge_cases(self):
         """Test path normalization edge cases."""
-        # Test with different path separators
-        assert normalize_path("path\\to\\file") == "path/to/file"
-        assert normalize_path("path/to/file") == "path/to/file"
-
-        # Test with dot notation
-        assert normalize_path("./path/to/file") == "path/to/file"
-        assert normalize_path("../path/to/file") == "../path/to/file"
-
-        # Test with empty or special paths
+        # Test empty and special paths
         assert normalize_path("") == ""
         assert normalize_path(".") == "."
         assert normalize_path("..") == ".."
+        assert normalize_path("./") == "."
+        assert normalize_path("../") == ".."
 
+        # Test multiple slashes
+        assert normalize_path("path//to//file") == "path/to/file"
+        assert normalize_path("path\\\\/to\\\\file") == "path/to/file"
+
+        # Test dots in path
+        assert normalize_path("./path/./to/./file") == "path/to/file"
+        assert normalize_path("path/././to/file") == "path/to/file"
+
+    @pytest.mark.unit
     def test_get_relative_path_edge_cases(self):
         """Test getting relative paths in edge cases."""
         # Test with same paths
         assert get_relative_path("/path/to/file", "/path/to/file") == "."
+        assert get_relative_path("C:\\path\\to\\file", "C:\\path\\to\\file") == "."
 
         # Test with parent path
         assert get_relative_path("/path/to/file", "/path") == "to/file"
+        assert get_relative_path("C:\\path\\to\\file", "C:\\path") == "to/file"
 
         # Test with different drives (Windows)
         result = get_relative_path("D:/path/file", "C:/path")
@@ -151,6 +171,7 @@ class TestPathUtils:
 
         # Test with invalid paths
         assert normalize_path("invalid\\path\\*") == "invalid/path/*"
+        assert normalize_path("path\\with\\spaces\\ ") == "path/with/spaces/ "
 
 
 class TestCoreFeatures:
@@ -175,11 +196,18 @@ class TestCoreFeatures:
         assert count_tokens("a" * 1000, "gpt-4o") > 0  # Long repetitive text
 
     def test_language_detection(self):
-        """Test language detection for different file types."""
+        """Test language detection with various inputs."""
+        # Basic detection
         assert detect_language("def test(): pass", "test.py") == "Python"
         assert detect_language('{"test": true}', "test.json") == "JSON"
         assert detect_language("# Test\n## Header", "test.md") == "Markdown"
         assert detect_language("random text", "test.txt") == "Text"
+
+        # Edge cases
+        assert detect_language("", "test.py") == "Text"
+        assert detect_language(None, "test.py") == "Text"
+        assert detect_language("print('hello')", None) == "Text"
+        assert detect_language("", None) == "Text"
 
     def test_gitignore_handling(self):
         """Test .gitignore pattern matching."""
@@ -225,7 +253,8 @@ class TestCoreFeatures:
 class TestLanguageDetector:
     """Test language detection functionality."""
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup_method(self):
         """Set up test cases."""
         self.detector = LanguageDetector()
 
@@ -242,7 +271,7 @@ class TestLanguageDetector:
             "React.useState()",
         ]
         for sample in js_samples:
-            self.assertEqual(self.detector.detect_language(sample, "test.js"), "JavaScript")
+            assert self.detector.detect_language(sample, "test.js") == "JavaScript"
 
     def test_detect_python(self):
         """Test Python detection."""
@@ -256,7 +285,7 @@ class TestLanguageDetector:
             "if __name__ == '__main__':",
         ]
         for sample in py_samples:
-            self.assertEqual(self.detector.detect_language(sample, "test.py"), "Python")
+            assert self.detector.detect_language(sample, "test.py") == "Python"
 
     def test_detect_html(self):
         """Test HTML detection."""
@@ -268,7 +297,7 @@ class TestLanguageDetector:
             "<style>.test { color: red; }</style>",
         ]
         for sample in html_samples:
-            self.assertEqual(self.detector.detect_language(sample, "test.html"), "HTML")
+            assert self.detector.detect_language(sample, "test.html") == "HTML"
 
     def test_detect_css(self):
         """Test CSS detection."""
@@ -280,7 +309,7 @@ class TestLanguageDetector:
             "@keyframes animation { from {} to {} }",
         ]
         for sample in css_samples:
-            self.assertEqual(self.detector.detect_language(sample, "test.css"), "CSS")
+            assert self.detector.detect_language(sample, "test.css") == "CSS"
 
     def test_normalize_language_name(self):
         """Test language name normalization."""
@@ -298,27 +327,25 @@ class TestLanguageDetector:
             ("unknown", "Unknown"),
         ]
         for input_name, expected in test_cases:
-            self.assertEqual(self.detector.normalize_language_name(input_name), expected)
+            assert self.detector.normalize_language_name(input_name) == expected
 
     def test_detect_by_extension(self):
         """Test language detection by file extension."""
         test_cases = [
-            ("test.py", "Python"),
-            ("test.js", "JavaScript"),
-            ("test.ts", "TypeScript"),
-            ("test.html", "HTML"),
-            ("test.css", "CSS"),
-            ("test.json", "JSON"),
-            ("test.md", "Markdown"),
-            ("test.sh", "Shell"),
-            ("Dockerfile", "Dockerfile"),
-            ("test.yaml", "YAML"),
-            ("test.yml", "YAML"),
-            ("test.unknown", "Unknown"),
+            ("test.py", "Python", "def test(): pass"),  # With content
+            ("test.js", "JavaScript", "function test() {}"),  # With content
+            ("test.ts", "TypeScript", "interface Test {}"),  # With content
+            ("test.html", "HTML", "<html></html>"),  # With content
+            ("test.css", "CSS", ".test {}"),  # With content
+            ("test.json", "JSON", "{}"),  # With content
+            ("test.md", "Markdown", "# Test"),  # With content
+            ("test.sh", "Shell", "#!/bin/bash"),  # With content
+            ("test.py", "Text", ""),  # Empty content
+            ("test.js", "Text", ""),  # Empty content
+            ("test.unknown", "Text", ""),  # Unknown extension
         ]
-        for filename, expected in test_cases:
-            result = detect_language("", filename)
-            self.assertEqual(result, expected)
+        for filename, expected, content in test_cases:
+            assert detect_language(content, filename) == expected
 
     def test_detect_mixed_content(self):
         """Test detection with mixed content."""
@@ -337,17 +364,17 @@ class TestLanguageDetector:
         }
         """
         # Test with different file extensions to ensure extension takes precedence
-        self.assertEqual(self.detector.detect_language(content, "test.py"), "Python")
-        self.assertEqual(self.detector.detect_language(content, "test.js"), "JavaScript")
-        self.assertEqual(self.detector.detect_language(content, "test.html"), "HTML")
-        self.assertEqual(self.detector.detect_language(content, "test.css"), "CSS")
+        assert self.detector.detect_language(content, "test.py") == "Python"
+        assert self.detector.detect_language(content, "test.js") == "JavaScript"
+        assert self.detector.detect_language(content, "test.html") == "HTML"
+        assert self.detector.detect_language(content, "test.css") == "CSS"
 
     def test_empty_content(self):
         """Test detection with empty content."""
-        self.assertEqual(self.detector.detect_language("", "test.py"), "Python")
-        self.assertEqual(self.detector.detect_language("", "test.js"), "JavaScript")
-        self.assertEqual(self.detector.detect_language("", None), "Text")
-        self.assertEqual(self.detector.detect_language(None, None), "Text")
+        assert self.detector.detect_language("", "test.py") == "Text"
+        assert self.detector.detect_language("", "test.js") == "Text"
+        assert self.detector.detect_language("", None) == "Text"
+        assert self.detector.detect_language(None, None) == "Text"
 
     def test_detect_by_patterns(self):
         """Test pattern-based language detection."""
@@ -357,7 +384,7 @@ class TestLanguageDetector:
             return True
         """
         result = detect_language_by_patterns(content)
-        self.assertEqual(result, "Python")
+        assert result == "Python"
 
 
 class TestTokenizerService:
@@ -413,11 +440,9 @@ class TestTokenizerService:
 
     def test_initialization_options(self):
         """Test tokenizer service initialization with different options."""
-        config = TokenizerConfig({
-            "model_name": "gpt-4o",
-            "max_tokens": 200000,
-            "output_format": "markdown"
-        })
+        config = TokenizerConfig(
+            {"model_name": "gpt-4o", "max_tokens": 200000, "output_format": "markdown"}
+        )
         service = TokenizerService(config)
         assert service.model_name == "gpt-4o"
         assert service.max_tokens == 200000

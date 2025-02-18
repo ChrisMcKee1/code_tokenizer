@@ -12,6 +12,7 @@ from code_tokenizer.__main__ import parse_args, read_ignore_patterns, write_outp
 from code_tokenizer.cli import main
 from code_tokenizer.models.model_config import DEFAULT_MODEL
 from code_tokenizer.services.filesystem_service import MockFileSystemService
+
 from .conftest import BaseFileSystemTest
 
 
@@ -23,21 +24,24 @@ class TestCLI(BaseFileSystemTest):
         # Set up sample codebase
         base_dir = temp_dir / "sample_codebase"
         self.setup_sample_codebase(mock_fs, base_dir)
-        
+
         output_dir = temp_dir / "output"
         base_name = base_dir.name
-        
+
         # Run CLI with basic options
         args = [
-            "-d", str(base_dir),
-            "-o", str(output_dir / f"{base_name}_docs.markdown"),
-            "--model", "gpt-4o"  # Valid model name
+            "-d",
+            str(base_dir),
+            "-o",
+            str(output_dir / f"{base_name}_docs.markdown"),
+            "--model",
+            "gpt-4o",  # Valid model name
         ]
-        
+
         with patch("code_tokenizer.cli.RealFileSystemService", return_value=mock_fs):
             result = main(args)
             assert result == 0
-        
+
         # Check output file exists
         assert mock_fs.exists(str(output_dir / f"{base_name}_docs.markdown"))
 
@@ -46,24 +50,29 @@ class TestCLI(BaseFileSystemTest):
         # Set up sample codebase
         base_dir = temp_dir / "sample_codebase"
         self.setup_sample_codebase(mock_fs, base_dir)
-        
+
         output_dir = temp_dir / "output"
         base_name = base_dir.name
         json_file = output_dir / f"{base_name}_docs.json"
-        
+
         # Run CLI with additional options
         args = [
-            "-d", str(base_dir),
-            "-o", str(json_file),
-            "--model", "gpt-4o",  # Valid model name
-            "--format", "json",
-            "--max-tokens", "1000"
+            "-d",
+            str(base_dir),
+            "-o",
+            str(json_file),
+            "--model",
+            "gpt-4o",  # Valid model name
+            "--format",
+            "json",
+            "--max-tokens",
+            "1000",
         ]
-        
+
         with patch("code_tokenizer.cli.RealFileSystemService", return_value=mock_fs):
             result = main(args)
             assert result == 0
-        
+
         # Check JSON output file exists
         assert mock_fs.exists(str(json_file))
 
@@ -71,14 +80,10 @@ class TestCLI(BaseFileSystemTest):
         """Test CLI error handling."""
         base_dir = temp_dir / "sample_codebase"
         output_dir = temp_dir / "output"
-        
+
         # Test with invalid model
-        args = [
-            "-d", str(base_dir),
-            "-o", str(output_dir),
-            "--model", "invalid-model"
-        ]
-        
+        args = ["-d", str(base_dir), "-o", str(output_dir), "--model", "invalid-model"]
+
         with pytest.raises(SystemExit) as exc_info:
             main(args)
         assert exc_info.value.code == 2
@@ -146,7 +151,7 @@ node_modules/
 # Empty lines
 
 dist/
-"""
+""",
         )
 
         patterns = read_ignore_patterns(str(gitignore), mock_fs)
@@ -171,7 +176,7 @@ dist/
 # Just a comment
         
 # Another comment
-"""
+""",
         )
         assert read_ignore_patterns(str(comment_gitignore), mock_fs) == []
 
@@ -180,16 +185,12 @@ dist/
         # Set up sample codebase
         base_dir = temp_dir / "sample_codebase"
         self.setup_sample_codebase(mock_fs, base_dir)
-        
+
         output_dir = temp_dir / "output"
         mock_fs.create_directory(str(output_dir))
-        
-        args = [
-            "-d", str(base_dir),
-            "-o", str(output_dir),
-            "--model", "gpt-4"  # Valid model name
-        ]
-        
+
+        args = ["-d", str(base_dir), "-o", str(output_dir), "--model", "gpt-4"]  # Valid model name
+
         result = main(args)
         assert result == 0
 
@@ -202,28 +203,32 @@ class TestEndToEnd(BaseFileSystemTest):
         # Set up sample codebase
         base_dir = temp_dir / "sample_codebase"
         self.setup_sample_codebase(mock_fs, base_dir)
-        
+
         output_dir = temp_dir / "output"
         mock_fs.create_directory(str(output_dir))
-        
+
         # Create output file path
         output_file = output_dir / "sample_codebase_docs.json"
-        
+
         args = [
-            "-d", str(base_dir),
-            "-o", str(output_file),
-            "--model", "gpt-4",  # Valid model name
-            "--format", "json",
-            "--bypass-gitignore"  # Bypass gitignore to ensure all files are processed
+            "-d",
+            str(base_dir),
+            "-o",
+            str(output_file),
+            "--model",
+            "gpt-4",  # Valid model name
+            "--format",
+            "json",
+            "--bypass-gitignore",  # Bypass gitignore to ensure all files are processed
         ]
-        
+
         with patch("code_tokenizer.cli.RealFileSystemService", return_value=mock_fs):
             result = main(args)
             assert result == 0
-        
+
         # Check output files exist
         assert mock_fs.exists(str(output_file))
-        
+
         # Read and verify output
         content = mock_fs.read_file(str(output_file))
         data = json.loads(content)
@@ -236,40 +241,44 @@ class TestEndToEnd(BaseFileSystemTest):
         # Set up a larger sample codebase
         src_dir = temp_dir / "src"
         self.setup_sample_codebase(mock_fs, src_dir)
-        
+
         # Add more files to simulate a larger codebase
         additional_files = {
             "utils.py": "def helper():\n    pass",
             "config/settings.py": "DEBUG = True",
-            "tests/test_main.py": "def test_something():\n    assert True"
+            "tests/test_main.py": "def test_something():\n    assert True",
         }
-        
+
         for path, content in additional_files.items():
             file_path = src_dir / path
             mock_fs.create_directory(str(os.path.dirname(file_path)))
             mock_fs.write_file(str(file_path), content)
-        
+
         output_dir = temp_dir / "output"
         mock_fs.create_directory(str(output_dir))
-        
+
         # Create output file path
         output_file = output_dir / "src_docs.json"
-        
+
         args = [
-            "-d", str(src_dir),
-            "-o", str(output_file),
-            "--model", "gpt-4",  # Valid model name
-            "--format", "json",
-            "--bypass-gitignore"  # Bypass gitignore to ensure all files are processed
+            "-d",
+            str(src_dir),
+            "-o",
+            str(output_file),
+            "--model",
+            "gpt-4",  # Valid model name
+            "--format",
+            "json",
+            "--bypass-gitignore",  # Bypass gitignore to ensure all files are processed
         ]
-        
+
         with patch("code_tokenizer.cli.RealFileSystemService", return_value=mock_fs):
             result = main(args)
             assert result == 0
-        
+
         # Check output files exist
         assert mock_fs.exists(str(output_file))
-        
+
         # Read and verify output
         content = mock_fs.read_file(str(output_file))
         data = json.loads(content)
@@ -279,7 +288,9 @@ class TestEndToEnd(BaseFileSystemTest):
 class TestMainModule(BaseFileSystemTest):
     """Test __main__ module functionality."""
 
-    def test_main_entry_point(self, mock_fs: MockFileSystemService, temp_dir: str, sample_codebase: str):
+    def test_main_entry_point(
+        self, mock_fs: MockFileSystemService, temp_dir: str, sample_codebase: str
+    ):
         """Test main entry point."""
         output_dir = Path(temp_dir) / "output"
         mock_fs.create_directory(str(temp_dir), 0o777)  # Full permissions for parent
@@ -341,7 +352,7 @@ class TestMainModule(BaseFileSystemTest):
    # Indented comment
    
 # Comment 2
-        """
+        """,
         )
         assert read_ignore_patterns(str(comments_file), mock_fs) == []
 
@@ -359,7 +370,7 @@ __pycache__/
 # Build directories
 build/
 dist/
-        """
+        """,
         )
         patterns = read_ignore_patterns(str(mixed_file), mock_fs)
         assert len(patterns) == 4

@@ -4,8 +4,9 @@ import os
 import shutil
 import sys
 from abc import ABC, abstractmethod
-from pathlib import Path
 from typing import Dict, List, Optional, Union
+
+from ..utils.path_utils import normalize_path
 
 
 class FileSystemService(ABC):
@@ -14,25 +15,27 @@ class FileSystemService(ABC):
     @abstractmethod
     def create_directory(self, path: str, permissions: Optional[int] = None) -> bool:
         """Create a directory with optional permissions.
-        
+
         Args:
             path: Directory path to create
             permissions: Optional Unix-style permissions (e.g. 0o777)
-            
+
         Returns:
             bool: True if successful
         """
         pass
 
     @abstractmethod
-    def write_file(self, path: str, content: Union[str, bytes], permissions: Optional[int] = None) -> bool:
+    def write_file(
+        self, path: str, content: Union[str, bytes], permissions: Optional[int] = None
+    ) -> bool:
         """Write content to a file with optional permissions.
-        
+
         Args:
             path: File path to write to
             content: Content to write (string or bytes)
             permissions: Optional Unix-style permissions (e.g. 0o666)
-            
+
         Returns:
             bool: True if successful
         """
@@ -41,10 +44,10 @@ class FileSystemService(ABC):
     @abstractmethod
     def read_file(self, path: str) -> Union[str, bytes]:
         """Read content from a file.
-        
+
         Args:
             path: File path to read from
-            
+
         Returns:
             Union[str, bytes]: File content
         """
@@ -53,10 +56,10 @@ class FileSystemService(ABC):
     @abstractmethod
     def check_permissions(self, path: str) -> bool:
         """Check if we have read/write permissions for a path.
-        
+
         Args:
             path: Path to check
-            
+
         Returns:
             bool: True if we have read/write access
         """
@@ -65,10 +68,10 @@ class FileSystemService(ABC):
     @abstractmethod
     def delete(self, path: str) -> bool:
         """Delete a file or directory.
-        
+
         Args:
             path: Path to delete
-            
+
         Returns:
             bool: True if successful
         """
@@ -77,10 +80,10 @@ class FileSystemService(ABC):
     @abstractmethod
     def exists(self, path: str) -> bool:
         """Check if a path exists.
-        
+
         Args:
             path: Path to check
-            
+
         Returns:
             bool: True if exists
         """
@@ -89,10 +92,10 @@ class FileSystemService(ABC):
     @abstractmethod
     def is_file(self, path: str) -> bool:
         """Check if path is a file.
-        
+
         Args:
             path: Path to check
-            
+
         Returns:
             bool: True if path is a file
         """
@@ -101,10 +104,10 @@ class FileSystemService(ABC):
     @abstractmethod
     def is_directory(self, path: str) -> bool:
         """Check if path is a directory.
-        
+
         Args:
             path: Path to check
-            
+
         Returns:
             bool: True if path is a directory
         """
@@ -113,11 +116,11 @@ class FileSystemService(ABC):
     @abstractmethod
     def list_files(self, directory: str, recursive: bool = False) -> List[str]:
         """List all files in a directory.
-        
+
         Args:
             directory: Directory to list files from
             recursive: Whether to list files recursively
-            
+
         Returns:
             List[str]: List of file paths
         """
@@ -126,10 +129,10 @@ class FileSystemService(ABC):
     @abstractmethod
     def get_file_size(self, file_path: str) -> int:
         """Get the size of a file in bytes.
-        
+
         Args:
             file_path (str): Path to the file
-            
+
         Returns:
             int: Size of the file in bytes
         """
@@ -152,7 +155,9 @@ class RealFileSystemService(FileSystemService):
         except OSError:
             return False
 
-    def write_file(self, path: str, content: Union[str, bytes], permissions: Optional[int] = None) -> bool:
+    def write_file(
+        self, path: str, content: Union[str, bytes], permissions: Optional[int] = None
+    ) -> bool:
         try:
             # Create parent directory if it doesn't exist
             parent = os.path.dirname(path)
@@ -160,9 +165,9 @@ class RealFileSystemService(FileSystemService):
                 self.create_directory(parent)
 
             # Write content
-            mode = 'wb' if isinstance(content, bytes) else 'w'
-            encoding = None if isinstance(content, bytes) else 'utf-8'
-            
+            mode = "wb" if isinstance(content, bytes) else "w"
+            encoding = None if isinstance(content, bytes) else "utf-8"
+
             with open(path, mode, encoding=encoding) as f:
                 f.write(content)
 
@@ -183,11 +188,11 @@ class RealFileSystemService(FileSystemService):
 
         try:
             # Try reading as text first
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, "r", encoding="utf-8") as f:
                 return f.read()
         except UnicodeDecodeError:
             # If that fails, read as binary
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 return f.read()
 
     def check_permissions(self, path: str) -> bool:
@@ -219,11 +224,11 @@ class RealFileSystemService(FileSystemService):
 
     def list_files(self, directory: str, recursive: bool = False) -> List[str]:
         """List all files in a directory.
-        
+
         Args:
             directory: Directory to list files from
             recursive: Whether to list files recursively
-            
+
         Returns:
             List[str]: List of file paths
         """
@@ -234,14 +239,14 @@ class RealFileSystemService(FileSystemService):
                     for filename in filenames:
                         path = os.path.join(root, filename)
                         # Normalize path to use forward slashes
-                        path = path.replace(os.sep, '/')
+                        path = path.replace(os.sep, "/")
                         files.append(path)
             else:
                 for entry in os.listdir(directory):
                     path = os.path.join(directory, entry)
                     if os.path.isfile(path):
                         # Normalize path to use forward slashes
-                        path = path.replace(os.sep, '/')
+                        path = path.replace(os.sep, "/")
                         files.append(path)
         except OSError as e:
             print(f"Error listing files in {directory}: {str(e)}", file=sys.stderr)
@@ -249,10 +254,10 @@ class RealFileSystemService(FileSystemService):
 
     def get_file_size(self, file_path: str) -> int:
         """Get the size of a file in bytes.
-        
+
         Args:
             file_path (str): Path to the file
-            
+
         Returns:
             int: Size of the file in bytes
         """
@@ -270,11 +275,11 @@ class MockFileSystemService(FileSystemService):
 
     def create_directory(self, path: str, permissions: Optional[int] = None) -> bool:
         """Create a directory in the mock file system.
-        
+
         Args:
             path: Directory path to create
             permissions: Optional Unix-style permissions (e.g. 0o777)
-            
+
         Returns:
             bool: True if successful
         """
@@ -282,14 +287,16 @@ class MockFileSystemService(FileSystemService):
         self._directories[path] = permissions or 0o777
         return True
 
-    def write_file(self, path: str, content: Union[str, bytes], permissions: Optional[int] = None) -> bool:
+    def write_file(
+        self, path: str, content: Union[str, bytes], permissions: Optional[int] = None
+    ) -> bool:
         """Write content to a file in the mock file system.
-        
+
         Args:
             path: File path to write to
             content: Content to write (string or bytes)
             permissions: Optional Unix-style permissions (e.g. 0o666)
-            
+
         Returns:
             bool: True if successful
         """
@@ -300,10 +307,10 @@ class MockFileSystemService(FileSystemService):
 
     def read_file(self, path: str) -> Union[str, bytes]:
         """Read content from a file in the mock file system.
-        
+
         Args:
             path: File path to read from
-            
+
         Returns:
             Union[str, bytes]: File content
         """
@@ -314,10 +321,10 @@ class MockFileSystemService(FileSystemService):
 
     def exists(self, path: str) -> bool:
         """Check if a path exists in the mock file system.
-        
+
         Args:
             path: Path to check
-            
+
         Returns:
             bool: True if path exists
         """
@@ -326,10 +333,10 @@ class MockFileSystemService(FileSystemService):
 
     def is_file(self, path: str) -> bool:
         """Check if a path is a file in the mock file system.
-        
+
         Args:
             path: Path to check
-            
+
         Returns:
             bool: True if path is a file
         """
@@ -338,10 +345,10 @@ class MockFileSystemService(FileSystemService):
 
     def is_directory(self, path: str) -> bool:
         """Check if a path is a directory in the mock file system.
-        
+
         Args:
             path: Path to check
-            
+
         Returns:
             bool: True if path is a directory
         """
@@ -350,10 +357,10 @@ class MockFileSystemService(FileSystemService):
 
     def get_file_size(self, path: str) -> int:
         """Get the size of a file in bytes.
-        
+
         Args:
             path: Path to the file
-            
+
         Returns:
             int: Size of the file in bytes
         """
@@ -362,16 +369,16 @@ class MockFileSystemService(FileSystemService):
             raise FileNotFoundError(f"File not found: {path}")
         content = self._files[path]
         if isinstance(content, str):
-            return len(content.encode('utf-8'))
+            return len(content.encode("utf-8"))
         return len(content)
 
     def list_files(self, directory: str, recursive: bool = False) -> List[str]:
         """List files in a directory.
-        
+
         Args:
             directory: Directory to list files from
             recursive: Whether to list files recursively
-            
+
         Returns:
             List[str]: List of file paths
         """
@@ -388,10 +395,10 @@ class MockFileSystemService(FileSystemService):
 
     def check_permissions(self, path: str) -> bool:
         """Check if a path has read permissions.
-        
+
         Args:
             path: Path to check
-            
+
         Returns:
             bool: True if path has read permissions
         """
@@ -404,11 +411,11 @@ class MockFileSystemService(FileSystemService):
 
     def set_permission(self, path: str, permissions: int) -> bool:
         """Set permissions for a path.
-        
+
         Args:
             path: Path to set permissions for
             permissions: Unix-style permissions (e.g. 0o666)
-            
+
         Returns:
             bool: True if successful
         """
@@ -423,10 +430,10 @@ class MockFileSystemService(FileSystemService):
 
     def delete(self, path: str) -> bool:
         """Delete a file or directory.
-        
+
         Args:
             path: Path to delete
-            
+
         Returns:
             bool: True if successful
         """
@@ -438,4 +445,4 @@ class MockFileSystemService(FileSystemService):
         if path in self._directories:
             del self._directories[path]
             return True
-        return False 
+        return False
