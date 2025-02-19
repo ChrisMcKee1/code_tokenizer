@@ -1,10 +1,10 @@
 """Language detection for code files."""
 
 import json
+import os
 import re
 from json.decoder import JSONDecodeError
 from typing import Dict, List, Optional, Pattern
-import os
 
 from pygments.lexers import guess_lexer_for_filename
 from pygments.util import ClassNotFound

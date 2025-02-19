@@ -11,6 +11,7 @@ from code_tokenizer.services.language_detector import (
 
 
 @pytest.mark.unit
+@pytest.mark.smoke
 def test_get_language_by_extension():
     """Test getting language by file extension."""
     # Test common extensions
@@ -34,6 +35,7 @@ def test_get_language_by_extension():
 
 
 @pytest.mark.unit
+@pytest.mark.smoke
 def test_detect_language_by_patterns():
     """Test language detection using pattern matching."""
     # Test Python patterns

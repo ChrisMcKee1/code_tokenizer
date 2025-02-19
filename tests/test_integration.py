@@ -19,6 +19,8 @@ from .conftest import BaseFileSystemTest
 class TestCLI(BaseFileSystemTest):
     """Test command-line interface functionality."""
 
+    @pytest.mark.smoke
+    @pytest.mark.integration
     def test_basic_cli(self, mock_fs, temp_dir):
         """Test basic CLI functionality."""
         # Set up sample codebase

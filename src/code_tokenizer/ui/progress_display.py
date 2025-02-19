@@ -3,8 +3,8 @@
 import os
 import sys
 import time
-from typing import Any, Dict, List, Optional, Union
 from collections import defaultdict
+from typing import Any, Dict, List, Optional, Union
 
 from rich import box
 from rich.console import Console
@@ -123,19 +123,27 @@ def create_display_layout(
     Returns:
         Layout: The configured display layout
     """
+    # Create main layout
     layout = Layout()
 
     # Create layout sections
-    layout.split(Layout(name="header", size=3), Layout(name="body"), Layout(name="footer", size=10))
+    header = Layout(name="header", size=3)
+    footer = Layout(name="footer", size=10)
+    progress_section = Layout(name="progress", ratio=2)
+    stats_section = Layout(name="stats", ratio=1)
 
-    # Split body into progress and stats
-    layout["body"].split_row(Layout(name="progress", ratio=2), Layout(name="stats", ratio=1))
+    # Create body section and split it
+    body = Layout(name="body")
+    body.split_row(progress_section, stats_section)
+
+    # Split main layout into sections
+    layout.split(header, body, footer)
 
     # Add components
     if progress:
-        layout["progress"].update(progress)
+        progress_section.update(progress)
     if stats:
-        layout["stats"].update(stats)
+        stats_section.update(stats)
 
     return layout
 

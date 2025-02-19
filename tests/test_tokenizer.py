@@ -12,6 +12,7 @@ class TestTokenizer:
     """Test tokenizer core functionality."""
 
     @pytest.mark.unit
+    @pytest.mark.smoke
     def test_count_tokens(self):
         """Test token counting."""
         text = "Hello, world!"
@@ -27,6 +28,7 @@ class TestTokenizer:
             count_tokens("test", "invalid-model")
 
     @pytest.mark.unit
+    @pytest.mark.smoke
     def test_truncate_text(self):
         """Test text truncation."""
         text = "This is a long text that needs to be truncated."

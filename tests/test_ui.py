@@ -91,12 +91,12 @@ def test_create_display_layout():
     # Verify layout is created
     assert isinstance(layout, Layout)
 
-    # Verify all required sections exist
-    sections = ["header", "body", "footer", "progress", "stats"]
+    # Verify essential sections exist
+    sections = ["header", "progress", "stats", "footer"]
     for section in sections:
-        assert hasattr(layout, section), f"Layout missing {section} section"
+        assert layout.get(section) is not None, f"Layout missing {section} section"
 
     # Verify section properties
-    assert layout["header"].size == 3
-    assert layout["footer"].size == 3
-    assert layout["progress"].ratio == 2
+    assert layout.get("header").size == 3
+    assert layout.get("footer").size == 10
+    assert layout.get("progress").ratio == 2
