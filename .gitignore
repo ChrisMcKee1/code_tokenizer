@@ -1,3 +1,63 @@
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# C# / .NET
+bin/
+obj/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Additional .NET patterns
+**/bin/
+**/obj/
+**/Debug/
+**/Release/
+
+# Test Results
+.coverage
+htmlcov/
+coverage.xml
+nosetests.xml
+junit-*.xml
+test-results/
+
+# Build Results
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Misc
+.DS_Store
+Thumbs.db
 .git/
