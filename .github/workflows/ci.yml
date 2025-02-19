@@ -25,7 +25,7 @@ jobs:
         run: |
           pytest -v -m "smoke" --cov=code_tokenizer --cov-report=xml
       - name: Upload smoke test coverage
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: smoke-coverage
           path: coverage.xml
@@ -48,7 +48,7 @@ jobs:
         run: |
           pytest -v -m "unit" --cov=code_tokenizer --cov-report=xml
       - name: Upload unit test coverage
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: unit-coverage
           path: coverage.xml
@@ -71,7 +71,7 @@ jobs:
         run: |
           pytest -v -m "integration" --cov=code_tokenizer --cov-report=xml
       - name: Upload integration test coverage
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: integration-coverage
           path: coverage.xml
@@ -96,7 +96,7 @@ jobs:
         run: |
           pytest -v -m "performance" --cov=code_tokenizer --cov-report=xml
       - name: Upload performance test coverage
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: performance-coverage
           path: coverage.xml
@@ -116,7 +116,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install coverage
       - name: Download all coverage data
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - name: Combine coverage data
         run: |
           coverage combine smoke-coverage/coverage.xml unit-coverage/coverage.xml integration-coverage/coverage.xml

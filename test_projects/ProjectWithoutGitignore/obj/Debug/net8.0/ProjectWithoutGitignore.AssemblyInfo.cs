@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ProjectWithoutGitignore")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+412205b577941f6557fdfc7530268dff0e311265")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ed9ee1ba4d221a6f3acfd1afa7b927892a4fa2aa")]
 [assembly: System.Reflection.AssemblyProductAttribute("ProjectWithoutGitignore")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ProjectWithoutGitignore")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

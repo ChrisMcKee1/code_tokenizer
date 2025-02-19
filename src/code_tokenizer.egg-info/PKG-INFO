@@ -68,8 +68,6 @@ Dynamic: requires-python
 
 # 📚 Code Tokenizer
 
-> 🔄 Transform your codebase into LLM-ready tokens with intelligent processing!
-
 <div align="center">
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -84,382 +82,347 @@ Dynamic: requires-python
 
 </div>
 
-## 🎯 What is Code Tokenizer?
+## 🔄 Your AI-Powered Code Analysis Companion
+> Transform any codebase into LLM-ready tokens!
 
-Code Tokenizer is your bridge to Large Language Models (LLMs)! It intelligently processes your codebase to make it LLM-ready, handling everything from language detection to token management. Perfect for developers working with AI models like GPT-4, Claude, and Gemini!
+<div align="center">
 
-> [!NOTE]
-> Code Tokenizer automatically handles encoding detection, language identification, and token counting for all major LLM models. Just point it at your codebase and let it do the work!
+### ⚡ One Command = LLM-Ready Code Context
 
-### 🌟 Key Features
+```bash
+code-tokenizer -d ./your-project -o ./context.md
+```
 
-- 🎯 **Smart Processing**: Automatically detects languages, handles encodings, and respects `.gitignore` rules
-- 🤖 **LLM-Ready**: Optimized for popular AI models with accurate token counting
-- 📊 **Rich Analysis**: Get detailed stats about your codebase
-- 🎨 **Multiple Formats**: Output as Markdown or JSON
-- 🔄 **Template Support**: Generate LLM-ready templates for AI interactions
 
-## 🚀 Quick Start
 
-### Installation
+### 🆚 Manual Copying vs Code Tokenizer
+
+| Without Code Tokenizer | With Code Tokenizer |
+|----------------------|-------------------|
+| ❌ Manually copy each file | ✅ One command for entire codebase |
+| ❌ Hit token limits constantly | ✅ Automatically fits context window |
+| ❌ Miss important code context | ✅ Preserves all critical relationships |
+| ❌ Include test/build noise | ✅ Smart filtering of irrelevant files |
+| ❌ Waste time formatting | ✅ Perfect LLM-ready format instantly |
+| ❌ Inconsistent results | ✅ Consistent, reproducible output |
+
+</div>
+
+## 📄 What You Get: Perfect LLM Input
+
+- **A Single Markdown/JSON File**: Contains your entire codebase context, perfectly formatted for any LLM
+- **Token-Optimized**: Automatically fits within your LLM's context window (GPT-4, Claude, etc.)
+- **Ready to Copy & Paste**: Just copy the output file directly into ChatGPT, Claude, or any other LLM
+- **Smart Filtering**: Excludes tests, builds, and other noise that confuses LLMs
+- **Context Preservation**: Maintains critical relationships between code components
 
 > [!IMPORTANT]
-> Code Tokenizer requires Python 3.12 or higher.
+> Stop wasting time manually copying files or hitting token limits. Get your entire codebase into LLMs instantly!
 
-Choose your preferred installation method:
+<details open>
+<summary><h3 style="display: inline-block; margin: 0;">👀 Example Output (context.md)</h3></summary>
 
-#### 1. Global Installation (Recommended)
+Here's what you get in your output file:
 
-Using pipx (recommended for global installation):
+````
+# 📁 Project Overview
+Your entire codebase, perfectly formatted for LLMs:
+
+## API Components
+```typescript
+// UserController.ts
+export class UserController {
+    async getUser(id: string): Promise<User> {
+        // Your actual implementation
+    }
+}
+```
+
+## Business Logic
+```typescript
+// UserService.ts
+export class UserService {
+    // Your actual business rules
+}
+```
+
+## Data Models
+```typescript
+// User.ts
+export interface User {
+    id: string;
+    // Your actual model
+}
+```
+
+## 🔗 Relationships
+- Controllers → Services → Models
+- Security & Auth flows
+- Business rules & validation
+````
+
+</details>
+
+> [!TIP]
+> Just copy the entire contents of context.md and paste into any LLM. No formatting needed!
+
+## 🚀 Installation & Quick Start
+
+<details open>
+<summary>📥 Get Started in Seconds</summary>
+
 ```bash
-# Install pipx if you haven't already
-python -m pip install --user pipx
-python -m pipx ensurepath
-
-# Restart your terminal to ensure PATH is updated
-# Then install code-tokenizer
+# Using pipx (recommended)
 pipx install code-tokenizer
 
-# Verify installation
-code-tokenizer --version
-```
-
-Using pip:
-```bash
-# Install globally
+# Or using pip
 pip install --user code-tokenizer
 
-# Add to PATH if needed:
-# Windows (PowerShell Admin):
-[Environment]::SetEnvironmentVariable(
-    "Path",
-    [Environment]::GetEnvironmentVariable("Path", "User") + ";%APPDATA%\Python\Python312\Scripts",
-    "User"
-)
-
-# Linux/Mac (add to ~/.bashrc or ~/.zshrc):
-export PATH="$HOME/.local/bin:$PATH"
-
-# Restart your terminal and verify installation
-code-tokenizer --version
+# Basic usage
+code-tokenizer -d ./your-project -o ./context.md
 ```
 
-#### 2. Virtual Environment Installation
+</details>
 
-If you're working in a virtual environment:
-```bash
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# OR
-. venv/Scripts/activate   # Windows
+## 🎮 Usage Examples
 
-# Install in virtual environment
-pip install code-tokenizer
-
-# Verify installation
-code-tokenizer --version
-```
-
-### Development Installation
-
-For development or contributing:
-```bash
-# Clone the repository
-git clone https://github.com/ChrisMcKee1/code_tokenizer.git
-cd code_tokenizer
-
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# OR
-. venv/Scripts/activate   # Windows
-
-# Install in development mode
-pip install -e .
-
-# Verify installation
-code-tokenizer --version
-```
-
-### Basic Usage
-
-First, create an output directory and ensure you have a `.gitignore` file:
-```bash
-# Create output directory
-mkdir output
-
-# Create or update .gitignore
-echo "__pycache__/" >> .gitignore
-echo "*.pyc" >> .gitignore
-echo ".git/" >> .gitignore
-
-# Clean up any existing cache files
-# Linux/Mac:
-find . -type d -name "__pycache__" -exec rm -r {} +
-# Windows (PowerShell):
-Get-ChildItem -Path . -Filter "__pycache__" -Recurse -Directory | Remove-Item -Recurse -Force
-```
-
-Then run the tokenizer:
-```bash
-# View help and options
-code-tokenizer --help
-# OR
-python -m code_tokenizer --help
-
-# Basic usage (will create output directory if it doesn't exist)
-code-tokenizer -d ./src -o ./output/analysis.md
-# OR
-python -m code_tokenizer -d ./src -o ./output/analysis.md
-
-# Use with specific model
-code-tokenizer -d ./src -o ./output/analysis.md --model claude-3-opus
-# OR
-python -m code_tokenizer -d ./src -o ./output/analysis.md --model claude-3-opus
-
-# Generate JSON output
-code-tokenizer -d ./src -o ./output/analysis.json --format json
-# OR
-python -m code_tokenizer -d ./src -o ./output/analysis.json --format json
-
-# Process all files (including those in .gitignore)
-code-tokenizer -d ./src -o ./output/analysis.md --bypass-gitignore
-# OR
-python -m code_tokenizer -d ./src -o ./output/analysis.md --bypass-gitignore
-```
-
-> [!IMPORTANT]
-> - Always ensure you have sufficient token allowance in your target LLM model
-> - Use `--max-tokens` to control file splitting
-> - Large files (>1MB) and binary files are skipped by default
-> - Create the output directory before running the command
-> - Add common patterns to `.gitignore` to skip cache files and other artifacts
-> - Clean up cache files before running to avoid processing unnecessary files
-> - If the command is not found, use `python -m code_tokenizer` instead
-
-## 🎯 Featured Examples
-
-### 1. AI Agent Code Generation
-
-Process your codebase and use it with LLMs using our structured XML format:
+<details open>
+<summary>Powerful Options for Any Workflow</summary>
 
 ```bash
-# Generate template from codebase
-code-tokenizer -d ./my-project -o ./agent-template --format markdown
+# Generate context from your project
+code-tokenizer -d ./your-project -o ./context.md
+
+# Export as JSON for automation
+code-tokenizer -d ./your-project -o ./context.json --format json
+
+# Generate context with specific LLM token counting
+code-tokenizer -d ./src -o ./context.md --model gpt-4o      # OpenAI's gpt-4o
+code-tokenizer -d ./src -o ./context.md --model claude-3   # Anthropic's Claude
+code-tokenizer -d ./src -o ./context.md --model gemini-pro # Google's Gemini
+
+# Process multiple directories
+code-tokenizer -d ./frontend/src -o ./frontend-context.md
+code-tokenizer -d ./backend/src -o ./backend-context.md
+
+# Target specific file types
+code-tokenizer -d ./src -o ./typescript-context.md --include "*.ts"
+code-tokenizer -d ./src -o ./react-context.md --include "*.tsx"
+
+# Exclude specific patterns
+code-tokenizer -d . -o ./context.md --exclude "test/**/*"
+code-tokenizer -d . -o ./context.md --exclude "*.test.ts"
+
+# Combine multiple options
+code-tokenizer -d ./src \
+    -o ./context.md \
+    --model gpt-4o \
+    --include "*.{ts,tsx}" \
+    --exclude "test/**/*" \
+    --format markdown \
+    --max-tokens 4000
 ```
 
-Use the output in your LLM prompt:
+</details>
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<TEMPLATE>
-    <INSTRUCTIONS>
-        Use the CODEBASE as reference to convert the TASK into detailed steps.
-        Be specific about file names and include relevant code snippets.
-    </INSTRUCTIONS>
-    
-    <TASK>
-        Implement a new authentication system
-    </TASK>
-    
-    <CODEBASE>
-        <!-- Output from code-tokenizer -->
-        {content from agent-template}
-    </CODEBASE>
-    
-    <CURSOR_RULES>
-        <RULE>Follow project code style and naming conventions</RULE>
-        <RULE>Maintain existing architecture patterns</RULE>
-    </CURSOR_RULES>
-</TEMPLATE>
-```
+## 🎯 Features & Benefits
 
-### 2. Architecture Analysis with Python Integration
+### 🤖 LLM Integration
+- Perfect for copying code directly into ChatGPT, Claude, or other LLMs
+- Formats code to fit any LLM's context window
+- Optimized for OpenAI's Models (GPT-4o, o1, o3-mini), Anthropic's (Claude 3.5 Sonnet), Google's (Gemini 1.5 Pro), and more!
+- Prevents token limit issues automatically
+- Manages token counts to stay within model limits
 
-Analyze your codebase architecture using both CLI and Python integration:
+### 🎨 Smart Processing
+- Auto-detects programming languages and encodings
+- Respects `.gitignore` rules to exclude irrelevant files
+- Handles large codebases efficiently
 
-```python
-import subprocess
-import json
-
-def analyze_architecture():
-    # Process codebase
-    subprocess.run([
-        'code-tokenizer',
-        '-d', './project',
-        '-o', './arch.json',
-        '--model', 'gpt-4',
-        '--format', 'json'
-    ])
-    
-    # Read analysis and create structured prompt
-    with open('./arch.json') as f:
-        analysis = json.load(f)
-    
-    prompt = f"""<?xml version="1.0" encoding="UTF-8"?>
-<ANALYSIS>
-    <INSTRUCTIONS>
-        As a software architect, analyze this codebase and provide recommendations.
-    </INSTRUCTIONS>
-    
-    <CODEBASE>
-        {json.dumps(analysis, indent=2)}
-    </CODEBASE>
-    
-    <REQUIREMENTS>
-        <REQUIREMENT>Architecture overview</REQUIREMENT>
-        <REQUIREMENT>Design patterns used</REQUIREMENT>
-        <REQUIREMENT>Improvement recommendations</REQUIREMENT>
-        <REQUIREMENT>Scalability assessment</REQUIREMENT>
-    </REQUIREMENTS>
-</ANALYSIS>"""
-    
-    return prompt  # Send to your preferred LLM
-```
-
-## 📋 Features
-
-### 🎯 Smart File Processing
-- ✓ Automatic language detection
-- ✓ Intelligent encoding handling
-- ✓ Binary file filtering
-- ✓ Full `.gitignore` support
-
-> [!WARNING]
-> Large binary files and certain encodings can significantly impact token counts. Use the `--no-metadata` flag if you encounter processing issues with complex files.
-
-### 🤖 LLM Support
-- ✓ Token counting for major models
-- ✓ Configurable token limits
-- ✓ Support for:
-  - OpenAI (GPT-4 & variants)
-  - Anthropic (Claude 3 family)
-  - Google (Gemini models)
-  - DeepSeek models
-
-### 📊 Analysis
-- ✓ Comprehensive statistics
-- ✓ Language distribution
-- ✓ Token usage analysis
-- ✓ Error reporting
-
-### 🛡️ File Handling
-- ✓ Automatic binary file detection and skipping
-- ✓ Large file handling (>1MB files are skipped)
-- ✓ Proper encoding detection
-- ✓ Configurable file size limits
-- ✓ Smart `.gitignore` handling:
-  - Skips common patterns (`__pycache__`, `.git`, etc.)
-  - Configurable with `--bypass-gitignore`
-  - Respects project's existing `.gitignore`
+### 📊 Analysis & Export
+- Provides detailed codebase statistics
+- Exports as Markdown or JSON
+- Tracks token usage across your project
 
 ## 📋 Command Options
 
 | Option | Description | Default |
 |--------|-------------|---------|
 | `-d, --directory` | Source directory | Required |
-| `-o, --output` | Output directory | Required |
+| `-o, --output` | Output file | Required |
 | `--model` | LLM model | claude-3-sonnet |
-| `--max-tokens` | Tokens per file | 2000 |
 | `--format` | Output format | markdown |
-| `--bypass-gitignore` | Process all files | False |
-| `--no-metadata` | Skip metadata | False |
+| `--max-tokens` | Token limit per file | 2000 |
 
-> [!TIP]
-> Use `--format json` when integrating with other tools or APIs. The JSON output includes detailed metadata and is easier to parse programmatically.
+## 🎯 Project Examples
 
-## 🔄 Integration Examples
+<details open>
+<summary><h3 style="display: inline-block; margin: 0;">⚛️ Next.js/React Project</h3></summary>
 
-### Pre-commit Hook
+#### 📟 CLI Commands
+
 ```bash
-#!/bin/bash
-code-tokenizer -d . -o review.md --format markdown
-# Use output for automated code review
+# Extract context from frontend codebase
+code-tokenizer -d ./nextjs-app/src -o ./context/frontend.md --model claude-3
+
+# Process component directory for LLM
+code-tokenizer -d ./nextjs-app/src/components -o ./context/components.md --include "*.tsx"
 ```
 
-### CI/CD Pipeline
-```yaml
-name: Code Analysis
-on: [pull_request]
-jobs:
-  analyze:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-      - name: Install code-tokenizer
-        run: pipx install code-tokenizer
-      - name: Analyze Code
-        run: |
-          code-tokenizer -d . -o analysis.md --model gpt-4
-          # Process with LLM for review
+#### 📁 Project Structure
+
+```plaintext
+nextjs-app/
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   │   ├── ui/
+│   │   └── features/
+│   └── lib/
+├── public/
+├── node_modules/
+├── package.json
+└── .gitignore  # Critical for excluding node_modules
 ```
 
-## 📦 Output Files
+#### 📝 Example .gitignore
 
-### 📝 Documentation (`*_docs.md/json`)
-- Source code with syntax highlighting
-- File metadata (optional):
-  - Language
-  - Encoding
-  - Size
-  - Token count
+```gitignore
+# Example .gitignore
+node_modules/
+.next/
+out/
+build/
+.env*.local
+*.log
+.DS_Store
+```
 
-### 📊 Analysis (`*_analysis.md`)
-- Project summary
-- Language stats
-- Token distribution
-- Processing logs
+</details>
 
-## 🛠️ Development
+<details open>
+<summary><h3 style="display: inline-block; margin: 0;">🐍 Python FastAPI Project</h3></summary>
 
-### Running Tests
+#### 📟 CLI Commands
+
 ```bash
-pytest
+# Extract context from API codebase
+code-tokenizer -d ./python-api/src -o ./context/api.md --model gpt-4o
+
+# Process route handlers for LLM
+code-tokenizer -d ./python-api/src/api/routes -o ./context/routes.md
 ```
 
-### Code Style
+#### 📁 Project Structure
+
+```plaintext
+python-api/
+├── src/
+│   ├── api/
+│   │   ├── routes/
+│   │   │   ├── auth.py
+│   │   │   └── users.py
+│   │   └── middleware/
+│   ├── core/
+│   │   ├── config.py
+│   │   └── security.py
+│   └── models/
+│       ├── user.py
+│       └── base.py
+├── tests/
+│   └── api/
+├── .env
+├── requirements.txt
+└── .gitignore  # Important for excluding env files & pycache
+```
+
+#### 📝 Example .gitignore
+
+```gitignore
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+venv/
+.pytest_cache/
+.coverage
+```
+
+</details>
+
+<details open>
+<summary><h3 style="display: inline-block; margin: 0;">🎯 C# API with Blazor</h3></summary>
+
+#### 📟 CLI Commands
+
 ```bash
-# Format code
-black .
-isort .
+# Extract context from backend codebase
+code-tokenizer -d ./dotnet-app/src/Api -o ./context/api.md
 
-# Type check
-mypy .
+# Process Blazor UI components for LLM
+code-tokenizer -d ./dotnet-app/src/Client/Pages -o ./context/ui.md
 
-# Lint
-flake8
+# Extract context from shared models
+code-tokenizer -d ./dotnet-app/src/Shared/Models -o ./context/models.md
 ```
 
-## 📚 More Examples
+#### 📁 Project Structure
 
-Check out our [examples collection](code-tokenizer-examples.md) for more use cases and integration patterns!
+```plaintext
+dotnet-app/
+├── src/
+│   ├── Api/
+│   │   ├── Controllers/
+│   │   ├── Services/
+│   │   └── Program.cs
+│   ├── Client/
+│   │   ├── Pages/
+│   │   └── Shared/
+│   └── Shared/
+│       └── Models/
+├── tests/
+├── .gitignore
+└── global.json
+```
+
+#### 📝 Example .gitignore
+
+```gitignore
+bin/
+obj/
+.vs/
+*.user
+appsettings.*.json
+wwwroot/
+node_modules/
+```
+
+</details>
+
+## 🔧 Troubleshooting
+
+> [!IMPORTANT]
+> Common issues and quick fixes:
+
+- **Command not found**: Restart terminal or use `python -m code_tokenizer`
+- **Files skipped**: Check file size (<1MB) and `.gitignore` rules
+- **Permission issues**: Ensure write access to output directory
+- **Installation problems**: Try using a virtual environment
 
 ## 🤝 Contributing
 
-We love contributions! Here's how:
-
-1. 🍴 Fork the repo
-2. 🌿 Create a branch (`git checkout -b feature/amazing`)
-3. 💾 Commit changes (`git commit -m 'Add amazing feature'`)
-4. 📤 Push to branch (`git push origin feature/amazing`)
-5. 🎁 Open a Pull Request
+1. Fork the repo
+2. Create a branch (`git checkout -b feature/amazing`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing`)
+5. Open a Pull Request
 
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## ❤️ Support
-
-If you find Code Tokenizer helpful:
-- ⭐ Star the repository
-- 🐛 Report issues
-- 🤝 Contribute
-- 📢 Share with others
 
 ---
 
@@ -468,66 +431,4 @@ If you find Code Tokenizer helpful:
 Made with ❤️ by developers, for developers
 
 [⭐ Star Code Tokenizer](https://github.com/ChrisMcKee1/code_tokenizer)
-
 </div>
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-1. **Command not found**
-   - Ensure Python Scripts directory is in PATH
-   - Restart terminal after installation
-   - Use module syntax: `python -m code_tokenizer`
-   - Try reinstalling:
-     ```bash
-     pip uninstall code-tokenizer
-     pip install --user code-tokenizer
-     ```
-
-2. **Files not processed**
-   - Check if files are too large (>1MB)
-   - Verify files aren't binary
-   - Ensure output directory exists
-   - Check `.gitignore` rules if files are excluded
-   - Common skipped patterns:
-     - `__pycache__/`
-     - `*.pyc`
-     - `.git/`
-     - Binary files
-     - Large files (>1MB)
-   - Try with `--bypass-gitignore` flag to see all files
-
-3. **Permission Issues**
-   - Ensure you have write access to output directory
-   - Run with appropriate permissions
-   - Check file system permissions
-   - Try running from a directory you own
-
-4. **Too Many Files Skipped**
-   - Use `--bypass-gitignore` to process all files
-   - Update `.gitignore` to exclude specific patterns
-   - Clean up cache files:
-     ```bash
-     # Linux/Mac:
-     find . -type d -name "__pycache__" -exec rm -r {} +
-     # Windows (PowerShell):
-     Get-ChildItem -Path . -Filter "__pycache__" -Recurse -Directory | Remove-Item -Recurse -Force
-     ```
-   - Check file size limits
-   - Verify file encodings
-
-5. **Installation Issues**
-   - Use a virtual environment:
-     ```bash
-     python -m venv venv
-     source venv/bin/activate  # Linux/Mac
-     # OR
-     . venv/Scripts/activate   # Windows
-     pip install code-tokenizer
-     ```
-   - Install with development dependencies:
-     ```bash
-     pip install code-tokenizer[dev]
-     ```
-   - Check Python version compatibility

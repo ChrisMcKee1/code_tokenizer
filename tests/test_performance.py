@@ -51,14 +51,14 @@ class TestPerformance:
         for name, text in test_cases.items():
             best_tokens_per_sec = 0
             token_count = 0
-            
+
             # Run multiple times and take the best performance
             for _ in range(num_runs):
                 start_time = time.time()
                 tokens = count_tokens(text, "gpt-4o")
                 duration = time.time() - start_time
                 tokens_per_sec = tokens / duration
-                
+
                 if tokens_per_sec > best_tokens_per_sec:
                     best_tokens_per_sec = tokens_per_sec
                     token_count = tokens
@@ -79,9 +79,10 @@ class TestPerformance:
             print(f"- Duration: {stats['duration']:.4f} seconds")
             print(f"- Tokens/sec: {stats['tokens_per_sec']:,.0f}")
 
-        # Verify performance thresholds - use the medium text case for verification
-        # as it's more representative of real-world usage
-        assert results["medium"]["tokens_per_sec"] > 1000, "Token counting performance below threshold"
+        # Verify performance thresholds
+        assert (
+            results["medium"]["tokens_per_sec"] > 1000
+        ), "Token counting performance below threshold"
 
     @pytest.mark.performance
     @pytest.mark.benchmark
@@ -129,7 +130,7 @@ value = function_{i}()
         bytes_per_second = total_size / duration
 
         # Print performance metrics
-        print(f"\nFile Processing Performance:")
+        print("\nFile Processing Performance:")
         print(f"- Files processed: {num_files}")
         print(f"- Total size: {total_size:,} bytes")
         print(f"- Duration: {duration:.2f} seconds")
@@ -164,17 +165,13 @@ value = function_{i}()
 
         # Sequential processing
         start_time = time.time()
-        sequential_results = [
-            tokenizer.process_file(f) for f in test_files[:10]
-        ]  # Process fewer files
+        sequential_results = [tokenizer.process_file(f) for f in test_files[:10]]
         sequential_duration = time.time() - start_time
 
         # Concurrent processing
         start_time = time.time()
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-            concurrent_results = list(
-                executor.map(tokenizer.process_file, test_files[:10])
-            )  # Process fewer files
+            concurrent_results = list(executor.map(tokenizer.process_file, test_files[:10]))
         concurrent_duration = time.time() - start_time
 
         # Print results
@@ -191,9 +188,9 @@ value = function_{i}()
                 assert seq["tokens"] == conc["tokens"]
 
     def _measure_concurrent_processing(self, num_files):
-        # Implementation of _measure_concurrent_processing method
+        """Implementation of concurrent processing measurement."""
         pass
 
     def _measure_sequential_processing(self, num_files):
-        # Implementation of _measure_sequential_processing method
+        """Implementation of sequential processing measurement."""
         pass
