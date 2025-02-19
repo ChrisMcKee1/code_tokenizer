@@ -108,6 +108,153 @@ def read_ignore_patterns(
     return patterns
 
 
+def write_json_docs(
+    fs_service: FileSystemService,
+    docs_path: str,
+    stats: Dict[str, Any],
+    failed_files: List[str],
+    model_name: str,
+) -> None:
+    """Write JSON documentation file.
+
+    Args:
+        fs_service: File system service
+        docs_path: Path to write docs to
+        stats: Statistics dictionary
+        failed_files: List of failed files
+        model_name: Name of the model used
+    """
+    content = {
+        "stats": stats,
+        "failed_files": failed_files,
+        "model": model_name,
+    }
+    fs_service.write_file(docs_path, json.dumps(content, indent=2))
+
+
+def write_markdown_docs(
+    fs_service: FileSystemService,
+    docs_path: str,
+    stats: Dict[str, Any],
+    successful_files: List[str],
+    failed_files: List[str],
+    model_name: str,
+    no_metadata: bool,
+) -> None:
+    """Write Markdown documentation file.
+
+    Args:
+        fs_service: File system service
+        docs_path: Path to write docs to
+        stats: Statistics dictionary
+        successful_files: List of successful files
+        failed_files: List of failed files
+        model_name: Name of the model used
+        no_metadata: Whether to exclude metadata
+    """
+    markdown_content: List[str] = [
+        "# Code Documentation\n\n",
+        f"## Model: {model_name}\n\n",
+        "## Statistics\n\n",
+    ]
+
+    # Add statistics
+    for key, value in stats.items():
+        if isinstance(value, dict):
+            markdown_content.append(f"### {key.title()}\n")
+            for k, v in value.items():
+                markdown_content.append(f"- {k}: {v}\n")
+            markdown_content.append("\n")
+        else:
+            markdown_content.append(f"- {key}: {value}\n")
+
+    # Add file lists if metadata is included
+    if not no_metadata:
+        if successful_files:
+            markdown_content.append("\n## Processed Files\n\n")
+            for file_path in successful_files:
+                markdown_content.append(f"- {file_path}\n")
+
+        if failed_files:
+            markdown_content.append("\n## Failed Files\n\n")
+            for file_path in failed_files:
+                markdown_content.append(f"- {file_path}\n")
+
+    fs_service.write_file(docs_path, "".join(markdown_content))
+
+
+def write_analysis_file(
+    fs_service: FileSystemService,
+    analysis_path: str,
+    stats: Dict[str, Any],
+    failed_files: List[str],
+) -> None:
+    """Write analysis file.
+
+    Args:
+        fs_service: File system service
+        analysis_path: Path to write analysis to
+        stats: Statistics dictionary
+        failed_files: List of failed files
+    """
+    analysis_content: List[str] = [
+        "# Code Analysis\n\n",
+        "## Overview\n\n",
+        f"Total files processed: {stats.get('files_processed', 0)}\n",
+        f"Total tokens: {stats.get('total_tokens', 0)}\n",
+        f"Total errors: {len(failed_files)}\n",
+    ]
+
+    if failed_files:
+        analysis_content.append("\n## Failed Files\n\n")
+        for file_path in failed_files:
+            analysis_content.append(f"- {file_path}\n")
+
+    fs_service.write_file(analysis_path, "".join(analysis_content))
+
+
+def write_output_file(
+    fs_service: FileSystemService,
+    output_path: str,
+    output_format: str,
+    stats: Dict[str, Any],
+    successful_files: List[str],
+    result: Dict[str, Any],
+    no_metadata: bool,
+) -> None:
+    """Write main output file.
+
+    Args:
+        fs_service: File system service
+        output_path: Path to write output to
+        output_format: Output format (json or markdown)
+        stats: Statistics dictionary
+        successful_files: List of successful files
+        result: Full result dictionary
+        no_metadata: Whether to exclude metadata
+    """
+    if output_format == "json":
+        fs_service.write_file(output_path, json.dumps(result, indent=2))
+    else:
+        output_content: List[str] = ["# Code Analysis Results\n\n", "## Overview\n\n"]
+
+        for key, value in stats.items():
+            if isinstance(value, dict):
+                output_content.append(f"### {key.title()}\n")
+                for k, v in value.items():
+                    output_content.append(f"- {k}: {v}\n")
+                output_content.append("\n")
+            else:
+                output_content.append(f"- {key}: {value}\n")
+
+        if successful_files and not no_metadata:
+            output_content.append("\n## Files\n\n")
+            for file_path in successful_files:
+                output_content.append(f"- {file_path}\n")
+
+        fs_service.write_file(output_path, "".join(output_content))
+
+
 def write_output(
     result: Dict[str, Any],
     output_path: str,
@@ -137,82 +284,33 @@ def write_output(
         # Write documentation file
         docs_path = os.path.join(os.path.dirname(output_path), f"{base_name}_docs.json")
         if output_format == "json":
-            content = {
-                "stats": stats,
-                "failed_files": failed_files,
-                "model": model_name,
-            }
-            fs_service.write_file(docs_path, json.dumps(content, indent=2))
+            write_json_docs(fs_service, docs_path, stats, failed_files, model_name)
         else:
             docs_path = os.path.join(output_path, f"{base_name}_docs.markdown")
-            markdown_content: List[str] = [
-                "# Code Documentation\n\n",
-                f"## Model: {model_name}\n\n",
-                "## Statistics\n\n",
-            ]
-
-            # Add statistics
-            for key, value in stats.items():
-                if isinstance(value, dict):
-                    markdown_content.append(f"### {key.title()}\n")
-                    for k, v in value.items():
-                        markdown_content.append(f"- {k}: {v}\n")
-                    markdown_content.append("\n")
-                else:
-                    markdown_content.append(f"- {key}: {value}\n")
-
-            # Add file lists if metadata is included
-            if not no_metadata:
-                if successful_files:
-                    markdown_content.append("\n## Processed Files\n\n")
-                    for file_path in successful_files:
-                        markdown_content.append(f"- {file_path}\n")
-
-                if failed_files:
-                    markdown_content.append("\n## Failed Files\n\n")
-                    for file_path in failed_files:
-                        markdown_content.append(f"- {file_path}\n")
-
-            fs_service.write_file(docs_path, "".join(markdown_content))
+            write_markdown_docs(
+                fs_service,
+                docs_path,
+                stats,
+                successful_files,
+                failed_files,
+                model_name,
+                no_metadata,
+            )
 
         # Write analysis file
         analysis_path = os.path.join(os.path.dirname(output_path), f"{base_name}_analysis.md")
-        analysis_content: List[str] = [
-            "# Code Analysis\n\n",
-            "## Overview\n\n",
-            f"Total files processed: {stats.get('files_processed', 0)}\n",
-            f"Total tokens: {stats.get('total_tokens', 0)}\n",
-            f"Total errors: {len(failed_files)}\n",
-        ]
+        write_analysis_file(fs_service, analysis_path, stats, failed_files)
 
-        if failed_files:
-            analysis_content.append("\n## Failed Files\n\n")
-            for file_path in failed_files:
-                analysis_content.append(f"- {file_path}\n")
-
-        fs_service.write_file(analysis_path, "".join(analysis_content))
-
-        # Write the original output file as well
-        if output_format == "json":
-            fs_service.write_file(output_path, json.dumps(result, indent=2))
-        else:
-            output_content: List[str] = ["# Code Analysis Results\n\n", "## Overview\n\n"]
-
-            for key, value in stats.items():
-                if isinstance(value, dict):
-                    output_content.append(f"### {key.title()}\n")
-                    for k, v in value.items():
-                        output_content.append(f"- {k}: {v}\n")
-                    output_content.append("\n")
-                else:
-                    output_content.append(f"- {key}: {value}\n")
-
-            if successful_files and not no_metadata:
-                output_content.append("\n## Files\n\n")
-                for file_path in successful_files:
-                    output_content.append(f"- {file_path}\n")
-
-            fs_service.write_file(output_path, "".join(output_content))
+        # Write the original output file
+        write_output_file(
+            fs_service,
+            output_path,
+            output_format,
+            stats,
+            successful_files,
+            result,
+            no_metadata,
+        )
 
     except Exception as e:
         raise Exception(f"Failed to write output: {str(e)}")
@@ -254,21 +352,17 @@ def main() -> int:
                 "include_metadata": not args.no_metadata,
             }
         )
-        service = TokenizerService(config, fs_service)
+
+        tokenizer = TokenizerService(config, fs_service)
 
         # Process the directory
-        result = service.process_directory(args.directory)
+        result = tokenizer.process_directory(args.directory)
 
         # Write output
         write_output(result, args.output, args.format, args.no_metadata, fs_service)
 
-        # Return success if processing completed without errors
-        failed_files = result.get("failed_files", [])
-        return 0 if not failed_files or len(failed_files) == 0 else 1
+        return 0
 
-    except KeyboardInterrupt:
-        print("\nOperation cancelled by user", file=sys.stderr)
-        return 130
     except Exception as e:
         print(f"Error: {str(e)}", file=sys.stderr)
         return 1

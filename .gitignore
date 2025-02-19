@@ -1,28 +1,58 @@
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
 *.py[cod]
 *$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
 # Virtual Environment
 .env
-.venv
+.venv/
 env/
 venv/
 ENV/
+env.bak/
+venv.bak/
 
-# IDE
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# IDE - PyCharm
 .idea/
-.vscode/
-*.swp
-*.swo
+*.iml
+*.iws
+.idea_modules/
+
+# IDE - Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
 
 # C# / .NET
-bin/
-obj/
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
@@ -36,28 +66,105 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
-
-# Additional .NET patterns
-**/bin/
-**/obj/
-**/Debug/
-**/Release/
+**/[Bb]in/
+**/[Oo]bj/
+**/[Dd]ebug/
+**/[Rr]elease/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.CopyComplete
+*.[Cc]ache
+*.vsidx
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
 
 # Test Results
 .coverage
 htmlcov/
+.tox/
+.nox/
+.coverage.*
 coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
 nosetests.xml
 junit-*.xml
 test-results/
+TestResults/
 
 # Build Results
-dist/
-build/
+[Bb]uild/
+[Dd]ist/
 *.egg-info/
 .eggs/
+msbuild.log
+msbuild.err
+msbuild.wrn
 
 # Misc
 .DS_Store
 Thumbs.db
 .git/
+*.swp
+*.swo
+*~
+._*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.assets.json
+*.nuget.cache
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+/node_modules
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn
+.pnp.*
+
+# Jest
+coverage/
+.jest/
+jest-results/
+*.lcov
+
+# TypeScript
+*.tsbuildinfo
+.tscache/
+dist/
+build/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*

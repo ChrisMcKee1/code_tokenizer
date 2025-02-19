@@ -1,19 +1,12 @@
 """Test configuration and fixtures."""
 
 import os
-import shutil
-import tempfile
-from pathlib import Path
-from typing import Dict, Generator, Optional
+from typing import Dict
 
 import pytest
 
 from code_tokenizer.models.model_config import TokenizerConfig
-from code_tokenizer.services.filesystem_service import (
-    FileSystemService,
-    MockFileSystemService,
-    RealFileSystemService,
-)
+from code_tokenizer.services.filesystem_service import FileSystemService, MockFileSystemService
 from code_tokenizer.services.tokenizer_service import TokenizerService
 
 

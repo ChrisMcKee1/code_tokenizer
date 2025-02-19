@@ -1,7 +1,6 @@
 """Tests for gitignore functionality."""
 
 import os
-from pathlib import Path
 
 import pytest
 

@@ -364,3 +364,94 @@ Made with ❤️ by developers, for developers
 
 [⭐ Star Code Tokenizer](https://github.com/ChrisMcKee1/code_tokenizer)
 </div>
+
+## Development Setup
+
+### Prerequisites
+- Python 3.12+
+- Node.js 20.x+
+- npm 10.x+
+
+### Initial Setup
+
+1. Clone the repository:
+```bash
+git clone https://github.com/ChrisMcKee1/code_tokenizer.git
+cd code_tokenizer
+```
+
+2. Set up Python environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+python -m pip install -e ".[dev]"
+```
+
+3. Set up Node.js environment:
+```bash
+npm install
+```
+
+### Running Tests Locally
+
+To run all CI checks locally (matches GitHub Actions workflow):
+
+```bash
+./scripts/run_ci_checks.sh
+```
+
+Or run individual checks:
+
+#### Python Tests
+```bash
+# Smoke tests
+pytest -v -m "smoke" --cov=code_tokenizer --cov-report=xml
+
+# Unit tests
+pytest -v -m "unit" --cov=code_tokenizer --cov-report=xml
+
+# Integration tests
+pytest -v -m "integration" --cov=code_tokenizer --cov-report=xml
+
+# Performance tests
+pytest -v -m "performance" --cov=code_tokenizer --cov-report=xml
+```
+
+#### Node.js Tests
+```bash
+npm test
+npm run test:coverage
+```
+
+#### Linting
+```bash
+# Python
+black --check .
+isort --check-only .
+mypy src/
+flake8 src/
+
+# TypeScript
+npm run lint
+npm run type-check
+```
+
+#### Build Checks
+```bash
+python -m build
+twine check dist/*
+```
+
+### CI/CD Pipeline
+
+Our GitHub Actions workflow runs the following checks:
+1. Node.js tests with Jest
+2. Python smoke tests
+3. Python unit tests
+4. Python integration tests
+5. Python performance tests
+6. Coverage reporting to Codecov
+7. Linting (Python and TypeScript)
+8. Build verification
+
+All these checks must pass locally before pushing to avoid CI failures.

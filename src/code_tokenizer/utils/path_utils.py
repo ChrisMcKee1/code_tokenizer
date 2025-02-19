@@ -170,7 +170,7 @@ def get_relative_path(path: str, base_path: str) -> str:
 
     # If path is already relative to base_path, return it as is
     if path.startswith(base_path):
-        rel = path[len(base_path):].lstrip("/")
+        rel = path[len(base_path) :].lstrip("/")
         return rel if rel else "."
 
     # Convert both paths to absolute paths

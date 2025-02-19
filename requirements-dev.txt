@@ -1,20 +1,28 @@
 # Install production dependencies
 -r requirements.txt
 
-# Development and testing dependencies
-pytest>=8.0.0
-pytest-cov>=4.1.0
-pytest-benchmark>=4.0.0
-black>=24.2.0
-isort>=5.13.2
-flake8>=7.0.0
-mypy>=1.8.0
-coverage>=7.4.1
-build>=1.0.3
-twine>=4.0.2
+# Testing and Coverage
+pytest==8.0.0
+pytest-cov==4.1.0
+pytest-benchmark==4.0.0
+coverage==7.4.1
 
-# Additional development type stubs
+# Linting and Formatting
+black==24.1.1
+isort==5.13.2
+flake8==7.0.0
+mypy==1.8.0
 
-# Type stubs for better type checking
+# Build and Distribution
+build==1.0.3
+twine==4.0.2
+setuptools==69.0.3
+setuptools-scm==8.0.4
+wheel==0.42.0
+
+# Type stubs for development
 types-setuptools>=69.0.0.0
-types-pygments>=2.17.0.0 
+types-pygments>=2.17.0.0
+
+# Git hooks
+pre-commit==3.6.1 

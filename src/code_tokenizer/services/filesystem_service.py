@@ -6,8 +6,6 @@ import sys
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Union
 
-from ..utils.path_utils import normalize_path
-
 
 class FileSystemService(ABC):
     """Base class for file system operations."""

@@ -2,7 +2,6 @@
 
 import os
 import sys
-import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Union
 
@@ -12,7 +11,6 @@ from rich.layout import Layout
 from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskID, TextColumn
 from rich.table import Table
-from rich.text import Text
 
 
 class DisplayMode:
