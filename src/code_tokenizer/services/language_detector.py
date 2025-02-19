@@ -166,10 +166,10 @@ class LanguageDetector:
             if filename and filename.strip():
                 lexer = guess_lexer_for_filename(filename, content)
                 # Use the first alias or filetype as the language name
-                if hasattr(lexer, 'aliases') and lexer.aliases:
+                if hasattr(lexer, "aliases") and lexer.aliases:
                     return str(lexer.aliases[0])  # Convert to str to ensure return type
-                if hasattr(lexer, 'filenames') and lexer.filenames:
-                    ext = os.path.splitext(lexer.filenames[0])[1].lstrip('.')
+                if hasattr(lexer, "filenames") and lexer.filenames:
+                    ext = os.path.splitext(lexer.filenames[0])[1].lstrip(".")
                     lang = get_language_by_extension(ext)
                     return lang if lang != "Unknown" else "Text"
         except ClassNotFound:
@@ -196,14 +196,14 @@ class LanguageDetector:
         """
         return filename[filename.rfind(".") :].lower() if "." in filename else ""
 
-    def _detect_by_simple_indicators(self, content: str) -> str:
+    def _detect_by_simple_indicators(self, content: str) -> Optional[str]:
         """Detect language using simple content indicators.
 
         Args:
             content: The code content to analyze
 
         Returns:
-            str: Detected language name
+            Optional[str]: Detected language name or None if unknown
         """
         # Check for empty or whitespace-only content
         if not content or content.isspace():
@@ -215,7 +215,7 @@ class LanguageDetector:
                 json.loads(content)
                 return "JSON"
             except json.JSONDecodeError:
-                return "Text"
+                return None
 
         # Check for HTML
         if "<!DOCTYPE html" in content.lower() or "<html" in content.lower():
@@ -227,8 +227,8 @@ class LanguageDetector:
             if any(indicator in content.lower() for indicator in css_indicators):
                 return "CSS"
 
-        # Return Unknown for unrecognized content
-        return "Unknown"
+        # Return None for unrecognized content
+        return None
 
     def _resolve_language_conflicts(self, candidates: List[str], content: str) -> str:
         """Resolve conflicts between multiple language candidates.
@@ -435,10 +435,10 @@ def detect_language_by_patterns(content: str, filename: Optional[str] = None) ->
         try:
             lexer = guess_lexer_for_filename(filename, content)
             # Use the first alias or filetype as the language name
-            if hasattr(lexer, 'aliases') and lexer.aliases:
+            if hasattr(lexer, "aliases") and lexer.aliases:
                 return str(lexer.aliases[0])  # Convert to str to ensure return type
-            if hasattr(lexer, 'filenames') and lexer.filenames:
-                ext = os.path.splitext(lexer.filenames[0])[1].lstrip('.')
+            if hasattr(lexer, "filenames") and lexer.filenames:
+                ext = os.path.splitext(lexer.filenames[0])[1].lstrip(".")
                 return get_language_by_extension(ext)
             return "Text"  # Default if no aliases or filenames found
         except ClassNotFound:

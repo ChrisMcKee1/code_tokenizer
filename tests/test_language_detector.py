@@ -126,7 +126,7 @@ def test_language_detector_resolve_conflicts():
 
 @pytest.mark.unit
 def test_detect_by_simple_indicators():
-    """Test detection using simple content indicators."""
+    """Test detection by simple indicators."""
     detector = LanguageDetector()
 
     # Test JSON detection
@@ -138,16 +138,20 @@ def test_detect_by_simple_indicators():
     assert detector._detect_by_simple_indicators(invalid_json) is None
 
     # Test HTML detection
-    html_content = "<!DOCTYPE html><html><body></body></html>"
+    html_content = "<!DOCTYPE html><html><body>Test</body></html>"
     assert detector._detect_by_simple_indicators(html_content) == "HTML"
 
     # Test CSS detection
-    css_content = ".class { color: red; margin: 0; }"
+    css_content = "body { margin: 0; padding: 0; }"
     assert detector._detect_by_simple_indicators(css_content) == "CSS"
 
     # Test unknown content
     unknown_content = "Some random text"
-    assert detector._detect_by_simple_indicators(unknown_content) == "Unknown"
+    assert detector._detect_by_simple_indicators(unknown_content) is None
+
+    # Test empty content
+    assert detector._detect_by_simple_indicators("") == "Text"
+    assert detector._detect_by_simple_indicators("   ") == "Text"
 
 
 @pytest.mark.unit

@@ -23,6 +23,9 @@ class TokenizerConfig:
     ignore_patterns: List[str] = field(default_factory=list)
     file_extensions: Set[str] = field(default_factory=set)
     skip_extensions: Set[str] = field(default_factory=set)
+    show_progress: bool = True
+    verbose: bool = False
+    debug: bool = False
 
     def __init__(self, config_dict: Optional[Dict[str, Any]] = None) -> None:
         """Initialize the configuration.
@@ -41,6 +44,9 @@ class TokenizerConfig:
         self.bypass_gitignore = config_dict.get("bypass_gitignore", False)
         self.include_metadata = config_dict.get("include_metadata", True)
         self.ignore_patterns = config_dict.get("ignore_patterns", [])
+        self.show_progress = config_dict.get("show_progress", True)
+        self.verbose = config_dict.get("verbose", False)
+        self.debug = config_dict.get("debug", False)
 
         # When bypass_gitignore is True, we don't use any extension filters
         if self.bypass_gitignore:
@@ -137,6 +143,9 @@ class TokenizerConfig:
             "ignore_patterns": self.ignore_patterns,
             "file_extensions": list(self.file_extensions) if self.file_extensions else None,
             "skip_extensions": list(self.skip_extensions) if self.skip_extensions else None,
+            "show_progress": self.show_progress,
+            "verbose": self.verbose,
+            "debug": self.debug,
         }
 
 

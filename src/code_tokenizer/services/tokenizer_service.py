@@ -128,8 +128,10 @@ class TokenizerService:
             ext = ext.lstrip(".")
 
             # Skip files that should be ignored based on extension
-            if not self.config.bypass_gitignore and self.config.base_dir and should_ignore_file(
-                file_path, self.config.base_dir, self.ignore_patterns
+            if (
+                not self.config.bypass_gitignore
+                and self.config.base_dir
+                and should_ignore_file(file_path, self.config.base_dir, self.ignore_patterns)
             ):
                 return None
 
@@ -195,7 +197,7 @@ class TokenizerService:
             "truncated_files": 0,
             "total_tokens": 0,
             "total_size": 0,
-            "languages": defaultdict(int)
+            "languages": defaultdict(int),
         }
         successful_files: List[str] = []
         failed_files: List[str] = []
@@ -220,7 +222,9 @@ class TokenizerService:
                     file_stats = self.process_file(file_path)
                     if file_stats:
                         stats["files_processed"] = cast(int, stats["files_processed"]) + 1
-                        stats["total_tokens"] = cast(int, stats["total_tokens"]) + file_stats["tokens"]
+                        stats["total_tokens"] = (
+                            cast(int, stats["total_tokens"]) + file_stats["tokens"]
+                        )
                         stats["total_size"] = cast(int, stats["total_size"]) + file_stats["size"]
                         languages = cast(Dict[str, int], stats["languages"])
                         languages[file_stats["language"]] += 1

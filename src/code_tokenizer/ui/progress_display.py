@@ -112,8 +112,7 @@ def create_stats_table(stats: Dict) -> Union[Table, str]:
 
 
 def create_display_layout(
-    progress: Optional[Progress] = None,
-    stats: Optional[Union[Table, str]] = None
+    progress: Optional[Progress] = None, stats: Optional[Union[Table, str]] = None
 ) -> Layout:
     """Create the main display layout.
 
@@ -127,17 +126,10 @@ def create_display_layout(
     layout = Layout()
 
     # Create layout sections
-    layout.split(
-        Layout(name="header", size=3),
-        Layout(name="body"),
-        Layout(name="footer", size=10)
-    )
+    layout.split(Layout(name="header", size=3), Layout(name="body"), Layout(name="footer", size=10))
 
     # Split body into progress and stats
-    layout["body"].split_row(
-        Layout(name="progress", ratio=2),
-        Layout(name="stats", ratio=1)
-    )
+    layout["body"].split_row(Layout(name="progress", ratio=2), Layout(name="stats", ratio=1))
 
     # Add components
     if progress:
@@ -173,11 +165,7 @@ def update_display(
     header = layout.get("header")
     if header:
         header.update(
-            Panel(
-                f"Processing: {current_file}",
-                title="Code Tokenizer",
-                border_style="blue"
-            )
+            Panel(f"Processing: {current_file}", title="Code Tokenizer", border_style="blue")
         )
 
     # Update progress
@@ -194,9 +182,7 @@ def update_display(
     footer = layout.get("footer")
     if footer and errors:
         error_text = "\n".join(f"• {error}" for error in errors[-5:])
-        footer.update(
-            Panel(error_text, title="Errors", border_style="red")
-        )
+        footer.update(Panel(error_text, title="Errors", border_style="red"))
 
 
 class ProgressDisplay:
@@ -288,7 +274,7 @@ class ProgressDisplay:
                     task_id=self.task_id,
                     completed=self.current,
                     total=self.total,
-                    description=self.current_file or ""
+                    description=self.current_file or "",
                 )
 
             # Update display
@@ -299,7 +285,7 @@ class ProgressDisplay:
                     self.language_stats,
                     self.current_file or "",
                     "",
-                    errors
+                    errors,
                 )
 
     def update_language_stats(self, language: str) -> None:
@@ -393,8 +379,4 @@ class ProgressDisplay:
     def update_progress(self, current: int, total: int) -> None:
         """Update the progress bar with current progress."""
         if self.progress and self.task_id:
-            self.progress.update(
-                task_id=self.task_id,
-                completed=current,
-                total=total
-            )
+            self.progress.update(task_id=self.task_id, completed=current, total=total)
