@@ -267,7 +267,7 @@ class RealFileSystemService(FileSystemService):
 class MockFileSystemService(FileSystemService):
     """Mock file system service for testing."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize mock file system."""
         self._files: Dict[str, Union[str, bytes]] = {}
         self._permissions: Dict[str, int] = {}

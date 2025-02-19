@@ -4,7 +4,7 @@ import json
 import os
 import sys
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 from ..core.tokenizer import CodeTokenizer
 from ..exceptions import TokenizationError
@@ -13,16 +13,6 @@ from ..services.filesystem_service import FileSystemService, RealFileSystemServi
 from ..services.language_detector import LanguageDetector
 from ..ui.progress_display import ProgressDisplay
 from ..utils.path_utils import should_ignore_file, should_ignore_path
-
-
-class TokenizationError(Exception):
-    """Exception raised for tokenization errors.
-
-    This exception is raised when there are errors during the tokenization process,
-    such as file reading/writing errors, processing errors, or configuration errors.
-    """
-
-    pass
 
 
 def is_binary_file(content: bytes) -> bool:
@@ -138,7 +128,7 @@ class TokenizerService:
             ext = ext.lstrip(".")
 
             # Skip files that should be ignored based on extension
-            if not self.config.bypass_gitignore and should_ignore_file(
+            if not self.config.bypass_gitignore and self.config.base_dir and should_ignore_file(
                 file_path, self.config.base_dir, self.ignore_patterns
             ):
                 return None
@@ -189,61 +179,53 @@ class TokenizerService:
     def process_directory(
         self, directory: str, output_path: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Process a directory and generate documentation.
+        """Process all files in a directory.
 
         Args:
             directory: Directory to process
             output_path: Optional path to write output to
 
         Returns:
-            Dict[str, Any]: Processing statistics containing:
-                - stats: Dict with processing statistics
-                - successful_files: List of successfully processed files
-                - failed_files: List of files that failed processing
-                - model_name: Name of the model used for tokenization
-
-        Raises:
-            TokenizationError: If directory processing fails
+            Dict containing processing results and statistics
         """
+        # Initialize statistics
+        stats: Dict[str, Union[int, Dict[str, int]]] = {
+            "files_processed": 0,
+            "skipped_files": 0,
+            "truncated_files": 0,
+            "total_tokens": 0,
+            "total_size": 0,
+            "languages": defaultdict(int)
+        }
+        successful_files: List[str] = []
+        failed_files: List[str] = []
+
         try:
-            # Initialize stats
-            stats = {
-                "files_processed": 0,
-                "total_tokens": 0,
-                "total_size": 0,
-                "skipped_files": 0,
-                "truncated_files": 0,
-                "languages": defaultdict(int),
-                "errors": 0,
-            }
+            # Get list of files
+            files = self.fs_service.list_files(directory, recursive=True)
 
-            successful_files = []
-            failed_files = []
-
-            # Get all files in directory using filesystem service
-            all_files = self.fs_service.list_files(directory, recursive=True)
-
-            # Process files
-            for file_path in all_files:
+            # Process each file
+            for file_path in files:
                 try:
-                    # Get relative path for pattern matching and normalize separators
+                    # Get relative path
                     rel_path = os.path.relpath(file_path, directory).replace(os.sep, "/")
 
                     # Skip files matching ignore patterns only if not bypassing gitignore
                     if not self.config.bypass_gitignore:
                         if should_ignore_path(rel_path, self.ignore_patterns)[0]:
-                            stats["skipped_files"] += 1
+                            stats["skipped_files"] = cast(int, stats["skipped_files"]) + 1
                             continue
 
                     # Process file
                     file_stats = self.process_file(file_path)
                     if file_stats:
-                        stats["files_processed"] += 1
-                        stats["total_tokens"] += file_stats["tokens"]
-                        stats["total_size"] += file_stats["size"]
-                        stats["languages"][file_stats["language"]] += 1
+                        stats["files_processed"] = cast(int, stats["files_processed"]) + 1
+                        stats["total_tokens"] = cast(int, stats["total_tokens"]) + file_stats["tokens"]
+                        stats["total_size"] = cast(int, stats["total_size"]) + file_stats["size"]
+                        languages = cast(Dict[str, int], stats["languages"])
+                        languages[file_stats["language"]] += 1
                         if file_stats.get("truncated", False):
-                            stats["truncated_files"] += 1
+                            stats["truncated_files"] = cast(int, stats["truncated_files"]) + 1
                         successful_files.append(rel_path)
                     else:
                         # If bypass_gitignore is True, try to process binary files
@@ -252,38 +234,36 @@ class TokenizerService:
                                 # Get file size
                                 size = self.fs_service.get_file_size(file_path)
                                 # Add as binary file
-                                stats["files_processed"] += 1
-                                stats["total_size"] += size
-                                stats["languages"]["Binary"] += 1
+                                stats["files_processed"] = cast(int, stats["files_processed"]) + 1
+                                stats["total_size"] = cast(int, stats["total_size"]) + size
+                                languages = cast(Dict[str, int], stats["languages"])
+                                languages["Binary"] += 1
                                 successful_files.append(rel_path)
                                 continue
                             except Exception:
                                 pass
-                        stats["skipped_files"] += 1
                         failed_files.append(rel_path)
                 except Exception as e:
-                    print(f"Error processing {file_path}: {str(e)}", file=sys.stderr)
-                    stats["errors"] += 1
                     failed_files.append(rel_path)
+                    print(f"Warning: Failed to process {rel_path}: {str(e)}")
 
-            # Write output if path is provided
+            # Write output if path provided
             if output_path:
-                self.write_output(
-                    output_path,
-                    {
-                        "stats": stats,
-                        "successful_files": successful_files,
-                        "failed_files": failed_files,
-                        "model_name": self.config.model_name,
-                    },
-                )
+                result = {
+                    "stats": stats,
+                    "successful_files": successful_files,
+                    "failed_files": failed_files,
+                    "model": self.config.model_name,
+                }
+                self.write_output(output_path, result)
 
             return {
                 "stats": stats,
                 "successful_files": successful_files,
                 "failed_files": failed_files,
-                "model_name": self.config.model_name,
+                "model": self.config.model_name,
             }
+
         except Exception as e:
             raise TokenizationError(f"Failed to process directory: {str(e)}")
 
@@ -324,7 +304,7 @@ class TokenizerService:
             stats = data.get("stats", {})
             successful_files = data.get("successful_files", [])
             failed_files = data.get("failed_files", [])
-            model_name = data.get("model_name", self.config.model_name)
+            model_name = data.get("model", self.config.model_name)
 
             # Prepare output data
             output_data = {
@@ -376,24 +356,44 @@ class TokenizerService:
         """Read ignore patterns from .gitignore file.
 
         Args:
-            directory (str): Directory containing .gitignore
+            directory: Directory containing .gitignore file
 
         Returns:
-            List[str]: List of ignore patterns
+            List of ignore patterns
         """
-        gitignore_path = os.path.join(directory, ".gitignore")
-
         try:
+            # Read .gitignore file
+            gitignore_path = os.path.join(directory, ".gitignore")
             if self.fs_service.exists(gitignore_path):
                 content = self.fs_service.read_file(gitignore_path)
-                return [
-                    line.strip()
-                    for line in content.splitlines()
-                    if line.strip() and not line.startswith("#")
-                ]
+                if isinstance(content, bytes):
+                    content = content.decode("utf-8")
+                lines = [line.strip() for line in content.splitlines()]
+                return [line for line in lines if line and not line.startswith("#")]
             return []
         except Exception as e:
-            raise TokenizationError(f"Failed to read .gitignore: {str(e)}")
+            print(f"Warning: Failed to read .gitignore: {str(e)}")
+            return []
+
+    def should_ignore_file(self, file_path: str, base_path: str) -> bool:
+        """Check if a file should be ignored based on patterns.
+
+        Args:
+            file_path: Path to file
+            base_path: Base path for relative path calculation
+
+        Returns:
+            True if file should be ignored, False otherwise
+        """
+        if not base_path:
+            return False
+
+        try:
+            # Get relative path
+            rel_path = os.path.relpath(file_path, base_path).replace(os.sep, "/")
+            return should_ignore_path(rel_path, self.ignore_patterns)[0]
+        except Exception:
+            return False
 
     @classmethod
     def from_config(

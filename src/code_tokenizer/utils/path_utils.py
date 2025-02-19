@@ -32,7 +32,7 @@ def normalize_path(path: str) -> str:
 
     # Split path into components
     parts = normalized.split("/")
-    result = []
+    result: List[str] = []
 
     for part in parts:
         if part == "." or not part:
@@ -160,6 +160,14 @@ def get_relative_path(path: str, base_path: str) -> str:
     path = normalize_path(path)
     base_path = normalize_path(base_path)
 
+    # Extract drive letters if present (Windows)
+    path_drive = os.path.splitdrive(path)[0]
+    base_drive = os.path.splitdrive(base_path)[0]
+
+    # If drives are different, return the absolute path
+    if path_drive and base_drive and path_drive != base_drive:
+        return path
+
     # If path is already relative to base_path, return it as is
     if path.startswith(base_path):
         rel = path[len(base_path) :].lstrip("/")
@@ -176,8 +184,8 @@ def get_relative_path(path: str, base_path: str) -> str:
         # Normalize the result
         return normalize_path(rel_path)
     except ValueError:
-        # If paths are on different drives, return normalized path
-        return normalize_path(path)
+        # If paths are on different drives or other error, return normalized path
+        return path
 
 
 def should_ignore_path(path: str, patterns: List[str]) -> Tuple[bool, str]:

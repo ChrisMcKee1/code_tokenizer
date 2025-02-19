@@ -12,7 +12,7 @@ load_dotenv(env_path)
 
 # Version
 try:
-    from ._version import version as __version__
+    from code_tokenizer._version import __version__  # type: ignore
 except ImportError:  # pragma: no cover
     # Package is not installed, version is unknown
     __version__ = "0.0.0"

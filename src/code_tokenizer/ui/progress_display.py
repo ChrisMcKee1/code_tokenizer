@@ -4,6 +4,7 @@ import os
 import sys
 import time
 from typing import Any, Dict, List, Optional, Union
+from collections import defaultdict
 
 from rich import box
 from rich.console import Console
@@ -110,7 +111,10 @@ def create_stats_table(stats: Dict) -> Union[Table, str]:
     return table
 
 
-def create_display_layout(progress=None, stats=None):
+def create_display_layout(
+    progress: Optional[Progress] = None,
+    stats: Optional[Union[Table, str]] = None
+) -> Layout:
     """Create the main display layout.
 
     Args:
@@ -120,34 +124,26 @@ def create_display_layout(progress=None, stats=None):
     Returns:
         Layout: The configured display layout
     """
-    # Create the main layout
     layout = Layout()
 
-    # Create sections
-    header = Layout(name="header", size=3)
-    body = Layout(name="body")
-    footer = Layout(name="footer", size=3)
+    # Create layout sections
+    layout.split(
+        Layout(name="header", size=3),
+        Layout(name="body"),
+        Layout(name="footer", size=10)
+    )
 
-    # Create body sections
-    progress_section = Layout(name="progress", ratio=2)
-    stats_section = Layout(name="stats")
+    # Split body into progress and stats
+    layout["body"].split_row(
+        Layout(name="progress", ratio=2),
+        Layout(name="stats", ratio=1)
+    )
 
-    # Add content to sections
-    header.update(Panel("Code Tokenizer", border_style="blue"))
-    progress_section.update(Panel(progress or "", title="Progress", border_style="green"))
-    stats_section.update(Panel(stats or "", title="Statistics", border_style="magenta"))
-    footer.update(Panel("", border_style="yellow"))
-
-    # Build layout structure
-    layout.split(header, body, footer)
-    body.split_row(progress_section, stats_section)
-
-    # Make sections accessible by name
-    layout.header = header
-    layout.body = body
-    layout.footer = footer
-    layout.progress = progress_section
-    layout.stats = stats_section
+    # Add components
+    if progress:
+        layout["progress"].update(progress)
+    if stats:
+        layout["stats"].update(stats)
 
     return layout
 
@@ -155,81 +151,80 @@ def create_display_layout(progress=None, stats=None):
 def update_display(
     layout: Layout,
     progress: Progress,
-    stats: Dict,
+    stats: Dict[str, Any],
     current_file: str = "",
     status: str = "",
     errors: Optional[List[str]] = None,
 ) -> None:
-    """
-    Update the display layout with current progress and statistics.
+    """Update the display with current progress and stats.
 
     Args:
-        layout: Rich layout to update
-        progress: Progress group containing progress bars
-        stats: Current statistics dictionary
-        current_file: Currently processing file
+        layout: Layout to update
+        progress: Progress component
+        stats: Statistics to display
+        current_file: Current file being processed
         status: Current status message
-        errors: List of error messages to display
+        errors: Optional list of error messages
     """
-    if DISPLAY_MODE.is_test_mode:
-        # Simple output for tests
-        DISPLAY_MODE.console.print(f"Processing: {current_file}")
-        if status:
-            DISPLAY_MODE.console.print(f"Status: {status}")
-        if isinstance(stats, dict):
-            DISPLAY_MODE.console.print(create_stats_table(stats))
-        if errors:
-            DISPLAY_MODE.console.print("Errors:", style="red")
-            for error in errors:
-                DISPLAY_MODE.console.print(f"• {error}", style="red")
+    if not isinstance(layout, Layout):
         return
 
-    # Rich UI for CLI usage
-    layout["header"].update(
-        Panel(
-            Text(f"Processing: {current_file}", style="bold blue"),
-            title="Code Tokenizer",
-            border_style="blue",
-        )
-    )
-
-    layout["progress"].update(Panel(progress, title="Progress", border_style="green"))
-
-    stats_table = create_stats_table(stats)
-    layout["stats"].update(Panel(stats_table, title="Statistics", border_style="magenta"))
-
-    footer_content = [Text(status, style="bold green")]
-    if errors:
-        footer_content.extend(
-            [
-                Text("\nErrors:", style="bold red"),
-                Text("\n" + "\n".join(f"• {error}" for error in errors), style="red"),
-            ]
+    # Update header
+    header = layout.get("header")
+    if header:
+        header.update(
+            Panel(
+                f"Processing: {current_file}",
+                title="Code Tokenizer",
+                border_style="blue"
+            )
         )
 
-    layout["footer"].update(
-        Panel(Text.assemble(*footer_content), title="Status", border_style="yellow")
-    )
+    # Update progress
+    progress_section = layout.get("progress")
+    if progress_section and progress:
+        progress_section.update(progress)
+
+    # Update stats
+    stats_section = layout.get("stats")
+    if stats_section:
+        stats_section.update(create_stats_table(stats))
+
+    # Update footer with errors
+    footer = layout.get("footer")
+    if footer and errors:
+        error_text = "\n".join(f"• {error}" for error in errors[-5:])
+        footer.update(
+            Panel(error_text, title="Errors", border_style="red")
+        )
 
 
 class ProgressDisplay:
-    """Display progress for code tokenization tasks."""
+    """Display progress and statistics for code tokenization."""
 
     def __init__(self, test_mode: bool = False) -> None:
-        """Initialize the progress display.
+        """Initialize progress display.
 
         Args:
-            test_mode: Whether to run in test mode (disables rich output)
+            test_mode: Whether to run in test mode
         """
         self.test_mode = test_mode
-        self.current = 0
-        self.total = 0
-        self.file_path = None
-        self.language_stats: Dict[str, int] = {}
+        self.display_mode = DisplayMode()
+        self.console = self.display_mode.console
+        self.progress: Optional[Progress] = None
+        self.layout: Optional[Layout] = None
+        self.task_id: Optional[TaskID] = None
+        self.current_file: Optional[str] = None
+        self.current: int = 0
+        self.total: int = 0
+        self.language_stats: Dict[str, int] = defaultdict(int)
         self.errors: List[str] = []
-        self.console = Console(record=test_mode, force_terminal=not test_mode)
-        self.progress = create_progress_group()
-        self.layout = create_display_layout()
+
+        if not test_mode:
+            self.progress = create_progress_group()
+            self.layout = create_display_layout(self.progress)
+            if self.progress:
+                self.task_id = self.progress.add_task("Processing...", total=0)
 
     def create_display_component(
         self, component_type: str, data: Any = None
@@ -271,46 +266,41 @@ class ProgressDisplay:
         total: Optional[int] = None,
         errors: Optional[List[str]] = None,
     ) -> None:
-        """Update the display with current progress.
+        """Update the display with current progress and stats.
 
         Args:
-            file_path: Current file being processed
-            current: Current progress value
-            total: Total progress value
-            errors: List of error messages
+            file_path: Optional path of the current file being processed
+            current: Optional current progress value
+            total: Optional total number of items to process
+            errors: Optional list of error messages
         """
-        if file_path:
-            self.file_path = file_path
-        if current is not None:
-            self.current = current
-        if total is not None:
-            self.total = total
-        if errors:
-            self.errors.extend(errors)
+        if not self.test_mode:
+            if file_path:
+                self.current_file = file_path
+            if current is not None:
+                self.current = current
+            if total is not None:
+                self.total = total
 
-        if self.test_mode:
-            self.console.print(f"Processing: {self.file_path}")
-            self.console.print(f"Progress: {self.current}/{self.total}")
-            if self.errors:
-                self.console.print("Errors:", style="red")
-                for error in self.errors:
-                    self.console.print(f"• {error}", style="red")
-            return
+            # Update progress
+            if self.progress and self.task_id:
+                self.progress.update(
+                    task_id=self.task_id,
+                    completed=self.current,
+                    total=self.total,
+                    description=self.current_file or ""
+                )
 
-        stats = {
-            "files_processed": self.current,
-            "total_files": self.total,
-            "languages": self.language_stats,
-        }
-
-        update_display(
-            self.layout,
-            self.progress,
-            stats,
-            self.file_path,
-            f"Processing file {self.current} of {self.total}",
-            self.errors,
-        )
+            # Update display
+            if self.layout and self.progress:
+                update_display(
+                    self.layout,
+                    self.progress,
+                    self.language_stats,
+                    self.current_file or "",
+                    "",
+                    errors
+                )
 
     def update_language_stats(self, language: str) -> None:
         """Update language statistics.
@@ -356,8 +346,8 @@ class ProgressDisplay:
             total: Total number of files
         """
         self.total = total
-        if not self.test_mode and self.progress:
-            self.progress.update(self.progress.tasks[0], total=total)
+        if not self.test_mode and self.progress and self.task_id:
+            self.progress.update(task_id=self.task_id, total=total)
 
     def finish(self) -> None:
         """Complete the progress display."""
@@ -399,3 +389,12 @@ class ProgressDisplay:
         """
         if not self.test_mode and self.console:
             self.console.print(f"[green]Success: {message}[/green]")
+
+    def update_progress(self, current: int, total: int) -> None:
+        """Update the progress bar with current progress."""
+        if self.progress and self.task_id:
+            self.progress.update(
+                task_id=self.task_id,
+                completed=current,
+                total=total
+            )

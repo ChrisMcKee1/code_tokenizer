@@ -4,6 +4,7 @@ import json
 import re
 from json.decoder import JSONDecodeError
 from typing import Dict, List, Optional, Pattern
+import os
 
 from pygments.lexers import guess_lexer_for_filename
 from pygments.util import ClassNotFound
@@ -164,7 +165,13 @@ class LanguageDetector:
         try:
             if filename and filename.strip():
                 lexer = guess_lexer_for_filename(filename, content)
-                return self.normalize_language_name(lexer.name)
+                # Use the first alias or filetype as the language name
+                if hasattr(lexer, 'aliases') and lexer.aliases:
+                    return str(lexer.aliases[0])  # Convert to str to ensure return type
+                if hasattr(lexer, 'filenames') and lexer.filenames:
+                    ext = os.path.splitext(lexer.filenames[0])[1].lstrip('.')
+                    lang = get_language_by_extension(ext)
+                    return lang if lang != "Unknown" else "Text"
         except ClassNotFound:
             pass
 
@@ -208,7 +215,7 @@ class LanguageDetector:
                 json.loads(content)
                 return "JSON"
             except json.JSONDecodeError:
-                return None
+                return "Text"
 
         # Check for HTML
         if "<!DOCTYPE html" in content.lower() or "<html" in content.lower():
@@ -427,7 +434,13 @@ def detect_language_by_patterns(content: str, filename: Optional[str] = None) ->
     if filename:
         try:
             lexer = guess_lexer_for_filename(filename, content)
-            return lexer.name
+            # Use the first alias or filetype as the language name
+            if hasattr(lexer, 'aliases') and lexer.aliases:
+                return str(lexer.aliases[0])  # Convert to str to ensure return type
+            if hasattr(lexer, 'filenames') and lexer.filenames:
+                ext = os.path.splitext(lexer.filenames[0])[1].lstrip('.')
+                return get_language_by_extension(ext)
+            return "Text"  # Default if no aliases or filenames found
         except ClassNotFound:
             pass
 

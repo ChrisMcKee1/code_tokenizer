@@ -9,13 +9,17 @@ on:
 
 jobs:
   smoke-test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.12']
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ matrix.python-version }}
           cache: 'pip'
       - name: Install dependencies
         run: |
@@ -27,18 +31,22 @@ jobs:
       - name: Upload smoke test coverage
         uses: actions/upload-artifact@v4
         with:
-          name: smoke-coverage
+          name: smoke-coverage-${{ matrix.os }}
           path: coverage.xml
 
   unit-test:
     needs: smoke-test
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.12']
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ matrix.python-version }}
           cache: 'pip'
       - name: Install dependencies
         run: |
@@ -50,18 +58,22 @@ jobs:
       - name: Upload unit test coverage
         uses: actions/upload-artifact@v4
         with:
-          name: unit-coverage
+          name: unit-coverage-${{ matrix.os }}
           path: coverage.xml
 
   integration-test:
     needs: unit-test
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.12']
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ matrix.python-version }}
           cache: 'pip'
       - name: Install dependencies
         run: |
@@ -73,7 +85,7 @@ jobs:
       - name: Upload integration test coverage
         uses: actions/upload-artifact@v4
         with:
-          name: integration-coverage
+          name: integration-coverage-${{ matrix.os }}
           path: coverage.xml
 
   performance-test:
@@ -118,7 +130,7 @@ jobs:
         uses: actions/download-artifact@v4
       - name: Combine coverage data
         run: |
-          coverage combine smoke-coverage/coverage.xml unit-coverage/coverage.xml integration-coverage/coverage.xml
+          coverage combine */coverage.xml
           coverage report
           coverage xml
       - name: Upload combined coverage to Codecov

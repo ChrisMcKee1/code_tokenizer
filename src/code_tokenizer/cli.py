@@ -12,8 +12,12 @@ from .services.filesystem_service import RealFileSystemService
 from .services.tokenizer_service import TokenizerService
 
 
-def create_argument_parser():
-    """Create the argument parser for the command-line interface."""
+def create_argument_parser() -> ArgumentParser:
+    """Create the argument parser for the command-line interface.
+    
+    Returns:
+        ArgumentParser: The configured argument parser
+    """
     parser = argparse.ArgumentParser(description="Process and count tokens in code files.")
 
     parser.add_argument("-d", "--directory", required=True, help="Directory to process")
@@ -39,27 +43,27 @@ def create_argument_parser():
     return parser
 
 
-def parse_args(args=None):
+def parse_args(args: Optional[List[str]] = None) -> Namespace:
     """Parse command line arguments.
 
     Args:
-        args (List[str], optional): Command line arguments. Defaults to None.
+        args: Command line arguments. Defaults to None.
 
     Returns:
-        argparse.Namespace: Parsed arguments
+        Namespace: Parsed arguments
     """
     parser = create_argument_parser()
     return parser.parse_args(args)
 
 
-def main(args=None):
+def main(args: Optional[List[str]] = None) -> int:
     """Main entry point for the code tokenizer.
 
     Args:
-        args (List[str], optional): Command line arguments. Defaults to None.
+        args: Command line arguments. Defaults to None.
 
     Returns:
-        int: Exit code
+        int: Exit code (0 for success, non-zero for failure)
     """
     try:
         if args is None:

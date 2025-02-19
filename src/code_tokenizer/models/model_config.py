@@ -1,6 +1,6 @@
 """Model configuration and encoding mappings."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
 # Default model configuration values
@@ -20,9 +20,9 @@ class TokenizerConfig:
     output_format: str = DEFAULT_OUTPUT_FORMAT
     bypass_gitignore: bool = False
     include_metadata: bool = True
-    ignore_patterns: List[str] = None
-    file_extensions: Set[str] = None
-    skip_extensions: Set[str] = None
+    ignore_patterns: List[str] = field(default_factory=list)
+    file_extensions: Set[str] = field(default_factory=set)
+    skip_extensions: Set[str] = field(default_factory=set)
 
     def __init__(self, config_dict: Optional[Dict[str, Any]] = None) -> None:
         """Initialize the configuration.
@@ -44,8 +44,8 @@ class TokenizerConfig:
 
         # When bypass_gitignore is True, we don't use any extension filters
         if self.bypass_gitignore:
-            self.file_extensions = None
-            self.skip_extensions = None
+            self.file_extensions = set()
+            self.skip_extensions = set()
         else:
             # Handle file_extensions
             file_extensions = config_dict.get("file_extensions")
