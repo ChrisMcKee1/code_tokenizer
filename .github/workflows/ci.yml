@@ -8,6 +8,26 @@ on:
   workflow_dispatch:
 
 jobs:
+  node-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    - name: Install dependencies
+      run: npm ci
+    - name: Run tests
+      run: npm test
+    - name: Upload coverage
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: true
+        flags: jest
+
   smoke-test:
     strategy:
       matrix:
@@ -89,7 +109,6 @@ jobs:
           path: coverage.xml
 
   performance-test:
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     needs: integration-test
     runs-on: ubuntu-latest
     steps:
@@ -113,7 +132,7 @@ jobs:
           path: coverage.xml
 
   coverage-report:
-    needs: [smoke-test, unit-test, integration-test]
+    needs: [smoke-test, unit-test, integration-test, performance-test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -135,11 +154,10 @@ jobs:
           coverage xml
       - name: Upload combined coverage to Codecov
         uses: codecov/codecov-action@v4
-        continue-on-error: true  # Make Codecov upload optional
         with:
           file: coverage.xml
-          fail_ci_if_error: false  # Don't fail if Codecov upload fails
-          token: ${{ secrets.CODECOV_TOKEN }}  # Optional for public repositories
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true  # Now we want the CI to fail if coverage upload fails
 
   lint:
     runs-on: ubuntu-latest
@@ -162,11 +180,9 @@ jobs:
     - name: Lint
       run: flake8 src/
 
-  release:
+  build-test:
     needs: [coverage-report, lint]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    
     steps:
     - uses: actions/checkout@v4
       with:
@@ -185,17 +201,11 @@ jobs:
     - name: Build package
       run: python -m build
     
-    - name: Publish to Test PyPI
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+    - name: Check distribution
       run: |
-        twine upload --repository-url https://test.pypi.org/legacy/ dist/*
-      continue-on-error: true  # Don't fail if package already exists on Test PyPI
-    
-    - name: Publish to PyPI
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        python -m twine check dist/*
+        
+    - name: Test install from wheel
       run: |
-        twine upload dist/* 
+        pip install dist/*.whl
+        python -c "import code_tokenizer; print(code_tokenizer.__version__)" 

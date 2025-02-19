@@ -137,3 +137,34 @@ project.assets.json
 *.tmp
 *.temp
 *.bak
+/node_modules
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn
+.pnp.*
+
+# Jest
+coverage/
+.jest/
+jest-results/
+*.lcov
+
+# TypeScript
+*.tsbuildinfo
+.tscache/
+dist/
+build/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
