@@ -1,0 +1,533 @@
+Metadata-Version: 2.2
+Name: code-tokenizer
+Version: 0.1.0
+Summary: Transform your codebase into LLM-ready tokens with intelligent processing
+Home-page: https://github.com/yourusername/code_tokenizer
+Author: Your Name
+Author-email: Chris McKee <your.email@example.com>
+License: MIT License
+        
+        Copyright (c) 2024 Chris McKee (CodeTokenizer)
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE. 
+Project-URL: Homepage, https://github.com/ChrisMcKee1/code-tokenizer
+Project-URL: Documentation, https://github.com/ChrisMcKee1/code_tokenizer#readme
+Project-URL: Repository, https://github.com/ChrisMcKee1/code_tokenizer.git
+Project-URL: Issues, https://github.com/ChrisMcKee1/code_tokenizer/issues
+Keywords: llm,tokenizer,code-analysis,documentation,cli
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Software Development :: Documentation
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: tiktoken
+Requires-Dist: pygments
+Requires-Dist: rich
+Requires-Dist: pathspec
+Requires-Dist: python-dotenv
+Provides-Extra: dev
+Requires-Dist: pytest>=6.0; extra == "dev"
+Requires-Dist: pytest-cov; extra == "dev"
+Requires-Dist: black; extra == "dev"
+Requires-Dist: isort; extra == "dev"
+Requires-Dist: flake8; extra == "dev"
+Requires-Dist: mypy; extra == "dev"
+Dynamic: author
+Dynamic: home-page
+Dynamic: requires-python
+
+# 📚 Code Tokenizer
+
+> 🔄 Transform your codebase into LLM-ready tokens with intelligent processing!
+
+<div align="center">
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/ChrisMcKee1/code_tokenizer/releases)
+
+[⭐ Star](https://github.com/ChrisMcKee1/code_tokenizer) | 
+[🍴 Fork](https://github.com/ChrisMcKee1/code_tokenizer/fork) | 
+[🐛 Report Bug](https://github.com/ChrisMcKee1/code_tokenizer/issues/new?template=bug_report.md&title=[BUG]) | 
+[✨ Request Feature](https://github.com/ChrisMcKee1/code_tokenizer/issues/new?template=feature_request.md&title=[FEATURE])
+
+</div>
+
+## 🎯 What is Code Tokenizer?
+
+Code Tokenizer is your bridge to Large Language Models (LLMs)! It intelligently processes your codebase to make it LLM-ready, handling everything from language detection to token management. Perfect for developers working with AI models like GPT-4, Claude, and Gemini!
+
+> [!NOTE]
+> Code Tokenizer automatically handles encoding detection, language identification, and token counting for all major LLM models. Just point it at your codebase and let it do the work!
+
+### 🌟 Key Features
+
+- 🎯 **Smart Processing**: Automatically detects languages, handles encodings, and respects `.gitignore` rules
+- 🤖 **LLM-Ready**: Optimized for popular AI models with accurate token counting
+- 📊 **Rich Analysis**: Get detailed stats about your codebase
+- 🎨 **Multiple Formats**: Output as Markdown or JSON
+- 🔄 **Template Support**: Generate LLM-ready templates for AI interactions
+
+## 🚀 Quick Start
+
+### Installation
+
+> [!IMPORTANT]
+> Code Tokenizer requires Python 3.12 or higher.
+
+Choose your preferred installation method:
+
+#### 1. Global Installation (Recommended)
+
+Using pipx (recommended for global installation):
+```bash
+# Install pipx if you haven't already
+python -m pip install --user pipx
+python -m pipx ensurepath
+
+# Restart your terminal to ensure PATH is updated
+# Then install code-tokenizer
+pipx install code-tokenizer
+
+# Verify installation
+code-tokenizer --version
+```
+
+Using pip:
+```bash
+# Install globally
+pip install --user code-tokenizer
+
+# Add to PATH if needed:
+# Windows (PowerShell Admin):
+[Environment]::SetEnvironmentVariable(
+    "Path",
+    [Environment]::GetEnvironmentVariable("Path", "User") + ";%APPDATA%\Python\Python312\Scripts",
+    "User"
+)
+
+# Linux/Mac (add to ~/.bashrc or ~/.zshrc):
+export PATH="$HOME/.local/bin:$PATH"
+
+# Restart your terminal and verify installation
+code-tokenizer --version
+```
+
+#### 2. Virtual Environment Installation
+
+If you're working in a virtual environment:
+```bash
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# OR
+. venv/Scripts/activate   # Windows
+
+# Install in virtual environment
+pip install code-tokenizer
+
+# Verify installation
+code-tokenizer --version
+```
+
+### Development Installation
+
+For development or contributing:
+```bash
+# Clone the repository
+git clone https://github.com/ChrisMcKee1/code_tokenizer.git
+cd code_tokenizer
+
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# OR
+. venv/Scripts/activate   # Windows
+
+# Install in development mode
+pip install -e .
+
+# Verify installation
+code-tokenizer --version
+```
+
+### Basic Usage
+
+First, create an output directory and ensure you have a `.gitignore` file:
+```bash
+# Create output directory
+mkdir output
+
+# Create or update .gitignore
+echo "__pycache__/" >> .gitignore
+echo "*.pyc" >> .gitignore
+echo ".git/" >> .gitignore
+
+# Clean up any existing cache files
+# Linux/Mac:
+find . -type d -name "__pycache__" -exec rm -r {} +
+# Windows (PowerShell):
+Get-ChildItem -Path . -Filter "__pycache__" -Recurse -Directory | Remove-Item -Recurse -Force
+```
+
+Then run the tokenizer:
+```bash
+# View help and options
+code-tokenizer --help
+# OR
+python -m code_tokenizer --help
+
+# Basic usage (will create output directory if it doesn't exist)
+code-tokenizer -d ./src -o ./output/analysis.md
+# OR
+python -m code_tokenizer -d ./src -o ./output/analysis.md
+
+# Use with specific model
+code-tokenizer -d ./src -o ./output/analysis.md --model claude-3-opus
+# OR
+python -m code_tokenizer -d ./src -o ./output/analysis.md --model claude-3-opus
+
+# Generate JSON output
+code-tokenizer -d ./src -o ./output/analysis.json --format json
+# OR
+python -m code_tokenizer -d ./src -o ./output/analysis.json --format json
+
+# Process all files (including those in .gitignore)
+code-tokenizer -d ./src -o ./output/analysis.md --bypass-gitignore
+# OR
+python -m code_tokenizer -d ./src -o ./output/analysis.md --bypass-gitignore
+```
+
+> [!IMPORTANT]
+> - Always ensure you have sufficient token allowance in your target LLM model
+> - Use `--max-tokens` to control file splitting
+> - Large files (>1MB) and binary files are skipped by default
+> - Create the output directory before running the command
+> - Add common patterns to `.gitignore` to skip cache files and other artifacts
+> - Clean up cache files before running to avoid processing unnecessary files
+> - If the command is not found, use `python -m code_tokenizer` instead
+
+## 🎯 Featured Examples
+
+### 1. AI Agent Code Generation
+
+Process your codebase and use it with LLMs using our structured XML format:
+
+```bash
+# Generate template from codebase
+code-tokenizer -d ./my-project -o ./agent-template --format markdown
+```
+
+Use the output in your LLM prompt:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<TEMPLATE>
+    <INSTRUCTIONS>
+        Use the CODEBASE as reference to convert the TASK into detailed steps.
+        Be specific about file names and include relevant code snippets.
+    </INSTRUCTIONS>
+    
+    <TASK>
+        Implement a new authentication system
+    </TASK>
+    
+    <CODEBASE>
+        <!-- Output from code-tokenizer -->
+        {content from agent-template}
+    </CODEBASE>
+    
+    <CURSOR_RULES>
+        <RULE>Follow project code style and naming conventions</RULE>
+        <RULE>Maintain existing architecture patterns</RULE>
+    </CURSOR_RULES>
+</TEMPLATE>
+```
+
+### 2. Architecture Analysis with Python Integration
+
+Analyze your codebase architecture using both CLI and Python integration:
+
+```python
+import subprocess
+import json
+
+def analyze_architecture():
+    # Process codebase
+    subprocess.run([
+        'code-tokenizer',
+        '-d', './project',
+        '-o', './arch.json',
+        '--model', 'gpt-4',
+        '--format', 'json'
+    ])
+    
+    # Read analysis and create structured prompt
+    with open('./arch.json') as f:
+        analysis = json.load(f)
+    
+    prompt = f"""<?xml version="1.0" encoding="UTF-8"?>
+<ANALYSIS>
+    <INSTRUCTIONS>
+        As a software architect, analyze this codebase and provide recommendations.
+    </INSTRUCTIONS>
+    
+    <CODEBASE>
+        {json.dumps(analysis, indent=2)}
+    </CODEBASE>
+    
+    <REQUIREMENTS>
+        <REQUIREMENT>Architecture overview</REQUIREMENT>
+        <REQUIREMENT>Design patterns used</REQUIREMENT>
+        <REQUIREMENT>Improvement recommendations</REQUIREMENT>
+        <REQUIREMENT>Scalability assessment</REQUIREMENT>
+    </REQUIREMENTS>
+</ANALYSIS>"""
+    
+    return prompt  # Send to your preferred LLM
+```
+
+## 📋 Features
+
+### 🎯 Smart File Processing
+- ✓ Automatic language detection
+- ✓ Intelligent encoding handling
+- ✓ Binary file filtering
+- ✓ Full `.gitignore` support
+
+> [!WARNING]
+> Large binary files and certain encodings can significantly impact token counts. Use the `--no-metadata` flag if you encounter processing issues with complex files.
+
+### 🤖 LLM Support
+- ✓ Token counting for major models
+- ✓ Configurable token limits
+- ✓ Support for:
+  - OpenAI (GPT-4 & variants)
+  - Anthropic (Claude 3 family)
+  - Google (Gemini models)
+  - DeepSeek models
+
+### 📊 Analysis
+- ✓ Comprehensive statistics
+- ✓ Language distribution
+- ✓ Token usage analysis
+- ✓ Error reporting
+
+### 🛡️ File Handling
+- ✓ Automatic binary file detection and skipping
+- ✓ Large file handling (>1MB files are skipped)
+- ✓ Proper encoding detection
+- ✓ Configurable file size limits
+- ✓ Smart `.gitignore` handling:
+  - Skips common patterns (`__pycache__`, `.git`, etc.)
+  - Configurable with `--bypass-gitignore`
+  - Respects project's existing `.gitignore`
+
+## 📋 Command Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-d, --directory` | Source directory | Required |
+| `-o, --output` | Output directory | Required |
+| `--model` | LLM model | claude-3-sonnet |
+| `--max-tokens` | Tokens per file | 2000 |
+| `--format` | Output format | markdown |
+| `--bypass-gitignore` | Process all files | False |
+| `--no-metadata` | Skip metadata | False |
+
+> [!TIP]
+> Use `--format json` when integrating with other tools or APIs. The JSON output includes detailed metadata and is easier to parse programmatically.
+
+## 🔄 Integration Examples
+
+### Pre-commit Hook
+```bash
+#!/bin/bash
+code-tokenizer -d . -o review.md --format markdown
+# Use output for automated code review
+```
+
+### CI/CD Pipeline
+```yaml
+name: Code Analysis
+on: [pull_request]
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: Install code-tokenizer
+        run: pipx install code-tokenizer
+      - name: Analyze Code
+        run: |
+          code-tokenizer -d . -o analysis.md --model gpt-4
+          # Process with LLM for review
+```
+
+## 📦 Output Files
+
+### 📝 Documentation (`*_docs.md/json`)
+- Source code with syntax highlighting
+- File metadata (optional):
+  - Language
+  - Encoding
+  - Size
+  - Token count
+
+### 📊 Analysis (`*_analysis.md`)
+- Project summary
+- Language stats
+- Token distribution
+- Processing logs
+
+## 🛠️ Development
+
+### Running Tests
+```bash
+pytest
+```
+
+### Code Style
+```bash
+# Format code
+black .
+isort .
+
+# Type check
+mypy .
+
+# Lint
+flake8
+```
+
+## 📚 More Examples
+
+Check out our [examples collection](code-tokenizer-examples.md) for more use cases and integration patterns!
+
+## 🤝 Contributing
+
+We love contributions! Here's how:
+
+1. 🍴 Fork the repo
+2. 🌿 Create a branch (`git checkout -b feature/amazing`)
+3. 💾 Commit changes (`git commit -m 'Add amazing feature'`)
+4. 📤 Push to branch (`git push origin feature/amazing`)
+5. 🎁 Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## ❤️ Support
+
+If you find Code Tokenizer helpful:
+- ⭐ Star the repository
+- 🐛 Report issues
+- 🤝 Contribute
+- 📢 Share with others
+
+---
+
+<div align="center">
+
+Made with ❤️ by developers, for developers
+
+[⭐ Star Code Tokenizer](https://github.com/ChrisMcKee1/code_tokenizer)
+
+</div>
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+1. **Command not found**
+   - Ensure Python Scripts directory is in PATH
+   - Restart terminal after installation
+   - Use module syntax: `python -m code_tokenizer`
+   - Try reinstalling:
+     ```bash
+     pip uninstall code-tokenizer
+     pip install --user code-tokenizer
+     ```
+
+2. **Files not processed**
+   - Check if files are too large (>1MB)
+   - Verify files aren't binary
+   - Ensure output directory exists
+   - Check `.gitignore` rules if files are excluded
+   - Common skipped patterns:
+     - `__pycache__/`
+     - `*.pyc`
+     - `.git/`
+     - Binary files
+     - Large files (>1MB)
+   - Try with `--bypass-gitignore` flag to see all files
+
+3. **Permission Issues**
+   - Ensure you have write access to output directory
+   - Run with appropriate permissions
+   - Check file system permissions
+   - Try running from a directory you own
+
+4. **Too Many Files Skipped**
+   - Use `--bypass-gitignore` to process all files
+   - Update `.gitignore` to exclude specific patterns
+   - Clean up cache files:
+     ```bash
+     # Linux/Mac:
+     find . -type d -name "__pycache__" -exec rm -r {} +
+     # Windows (PowerShell):
+     Get-ChildItem -Path . -Filter "__pycache__" -Recurse -Directory | Remove-Item -Recurse -Force
+     ```
+   - Check file size limits
+   - Verify file encodings
+
+5. **Installation Issues**
+   - Use a virtual environment:
+     ```bash
+     python -m venv venv
+     source venv/bin/activate  # Linux/Mac
+     # OR
+     . venv/Scripts/activate   # Windows
+     pip install code-tokenizer
+     ```
+   - Install with development dependencies:
+     ```bash
+     pip install code-tokenizer[dev]
+     ```
+   - Check Python version compatibility

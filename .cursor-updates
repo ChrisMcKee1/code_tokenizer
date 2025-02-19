@@ -1,0 +1,13 @@
+# Codebase2Markdown Updates
+
+- Updated all Claude 3 models (Opus, Sonnet, Haiku) to have 200K token context windows for accurate token counting and file size estimation.
+- Updated OpenAI model context windows: o1 and o3-mini to 200K tokens, others remain at 128K tokens.
+- Updated Gemini models: Added Gemini 2.0 Flash (1M tokens), Flash Lite Preview (1M tokens), and 1.5 Pro (2M tokens).
+- Changed default model to o3-mini (200K tokens) for all token counting and truncation operations.
+- Optimized markdown output format to reduce token usage while maintaining all context (inline metadata, reduced whitespace).
+- Added robust error handling and self-healing for problematic files (multiple encodings, binary detection, character cleanup).
+- Added support for custom gitignore file path with new --gitignore option, allowing users to specify alternative .gitignore locations.
+- Updated the repository fork link in README.md to point to the correct GitHub repository.
+- Fixed the broken "Report Bug" link in README.md to correctly point to the issues page.
+- Added comprehensive test scenarios for Python, Java, and C# applications, covering basic tokenization, empty input, special characters, comments, large files, and encoding handling.
+- Created new test project structures using CLI tools for C#, Python, and Java, including proper .gitignore files and testing frameworks. 
