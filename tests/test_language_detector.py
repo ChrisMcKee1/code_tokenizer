@@ -4,7 +4,6 @@ import pytest
 
 from code_tokenizer.services.language_detector import (
     LanguageDetector,
-    detect_language,
     detect_language_by_patterns,
     get_language_by_extension,
 )
@@ -42,7 +41,6 @@ def test_detect_language_by_patterns():
     python_code = """
     def test_function():
         pass
-    
     class TestClass:
         def method(self):
             pass
@@ -54,7 +52,6 @@ def test_detect_language_by_patterns():
     function test() {
         return true;
     }
-    
     const x = 5;
     let y = 10;
     """
@@ -79,7 +76,6 @@ def test_detect_language_by_patterns():
     .class {
         color: red;
     }
-    
     @media screen {
         body {
             background: white;
@@ -117,7 +113,6 @@ def test_language_detector_resolve_conflicts():
     mixed_py_js = """
     def python_func():
         pass
-        
     function jsFunc() {
         return true;
     }
@@ -249,7 +244,6 @@ def test_resolve_language_conflicts_edge_cases():
         pass
     import os
     from typing import List
-    
     function test() {
         return true;
     }
@@ -267,7 +261,6 @@ def test_resolve_language_conflicts_edge_cases():
     => {
         console.log('test');
     }
-    
     def simple_func():
         pass
     """

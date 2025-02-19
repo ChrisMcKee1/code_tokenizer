@@ -5,7 +5,6 @@ import tiktoken
 
 from code_tokenizer.core.tokenizer import CodeTokenizer, count_tokens, truncate_text
 from code_tokenizer.exceptions import ModelNotSupportedError
-from code_tokenizer.models.model_config import get_model_encoding
 
 
 class TestTokenizer:

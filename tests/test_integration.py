@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from code_tokenizer.__main__ import parse_args, read_ignore_patterns, write_output
+from code_tokenizer.__main__ import parse_args, read_ignore_patterns
 from code_tokenizer.cli import main
 from code_tokenizer.models.model_config import DEFAULT_MODEL
 from code_tokenizer.services.filesystem_service import MockFileSystemService
@@ -176,7 +176,6 @@ dist/
             str(comment_gitignore),
             """
 # Just a comment
-        
 # Another comment
 """,
         )
@@ -352,7 +351,6 @@ class TestMainModule(BaseFileSystemTest):
             """
 # Comment 1
    # Indented comment
-   
 # Comment 2
         """,
         )

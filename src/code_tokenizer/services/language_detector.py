@@ -142,47 +142,67 @@ class LanguageDetector:
         Returns:
             str: Detected language name
         """
+        print("\nLanguageDetector.detect_language:")
+        print(f"Content: {content[:50] if content else 'None'}...")
+        print(f"Filename: {filename}")
+
         if not content or (isinstance(content, str) and content.isspace()):
+            print("Empty or whitespace content -> returning Text")
             return "Text"
 
         # Try extension-based detection first if filename is provided
         if filename and filename.strip():
             ext = self._get_file_extension(filename)
+            print(f"File extension: {ext}")
             if ext in EXTENSION_LANGUAGE_MAP:
+                detected_lang = EXTENSION_LANGUAGE_MAP[ext]
+                print(f"Found in EXTENSION_LANGUAGE_MAP: {detected_lang}")
                 # For Python files, verify with content patterns
-                if EXTENSION_LANGUAGE_MAP[ext] == "Python" and content.strip():
+                if detected_lang == "Python" and content.strip():
                     for pattern in LANGUAGE_PATTERNS["Python"]:
                         if pattern.search(content):
+                            print("Python pattern matched")
                             return "Python"
-                return EXTENSION_LANGUAGE_MAP[ext] if content.strip() else "Text"
+                result = detected_lang if content.strip() else "Text"
+                print(f"Returning from extension mapping: {result}")
+                return result
 
         # Try pattern-based detection
         language = self._detect_by_simple_indicators(content)
+        print(f"Simple indicators detection result: {language}")
         if language and language != "Unknown":
-            return language
+            return self.normalize_language_name(language)
 
         # Try lexer-based detection with filename hint
         try:
             if filename and filename.strip():
+                print("Attempting lexer-based detection")
                 lexer = guess_lexer_for_filename(filename, content)
                 # Use the first alias or filetype as the language name
                 if hasattr(lexer, "aliases") and lexer.aliases:
-                    return str(lexer.aliases[0])  # Convert to str to ensure return type
+                    result = str(lexer.aliases[0])
+                    print(f"Found lexer alias: {result}")
+                    return self.normalize_language_name(result)
                 if hasattr(lexer, "filenames") and lexer.filenames:
                     ext = os.path.splitext(lexer.filenames[0])[1].lstrip(".")
                     lang = get_language_by_extension(ext)
-                    return lang if lang != "Unknown" else "Text"
+                    print(f"Found lexer extension: {ext} -> {lang}")
+                    return self.normalize_language_name(lang if lang != "Unknown" else "Text")
         except ClassNotFound:
+            print("Lexer not found")
             pass
 
         # Try JSON detection
         try:
+            print("Attempting JSON detection")
             json.loads(content)
             return "JSON"
         except (JSONDecodeError, TypeError):
+            print("Not valid JSON")
             pass
 
         # Return Text for unrecognized content
+        print("No language detected, returning Text")
         return "Text"
 
     def _get_file_extension(self, filename: str) -> str:
@@ -267,9 +287,16 @@ class LanguageDetector:
         Returns:
             str: Normalized language name
         """
+        if not language:
+            return "Text"
+
         language = language.lower()
 
-        # Common language name mappings
+        # Special cases
+        if language in ["text", "plaintext", "plain text", "txt", ""]:
+            return "Text"
+
+        # Common language name mappings with proper casing
         mappings = {
             "python": "Python",
             "py": "Python",
@@ -278,50 +305,60 @@ class LanguageDetector:
             "typescript": "TypeScript",
             "ts": "TypeScript",
             "html": "HTML",
+            "htm": "HTML",
             "css": "CSS",
+            "scss": "SCSS",
+            "sass": "Sass",
+            "less": "Less",
             "json": "JSON",
             "markdown": "Markdown",
             "md": "Markdown",
             "shell": "Shell",
             "bash": "Shell",
+            "zsh": "Shell",
             "dockerfile": "Dockerfile",
+            "docker": "Dockerfile",
             "yaml": "YAML",
             "yml": "YAML",
+            "xml": "XML",
             "sql": "SQL",
-            "text": "Text",
-            "plain text": "Text",
+            "mysql": "SQL",
+            "pgsql": "SQL",
+            "c": "C",
+            "cpp": "C++",
+            "csharp": "C#",
+            "cs": "C#",
+            "java": "Java",
+            "kotlin": "Kotlin",
+            "kt": "Kotlin",
+            "swift": "Swift",
+            "go": "Go",
+            "rust": "Rust",
+            "rs": "Rust",
+            "ruby": "Ruby",
+            "rb": "Ruby",
+            "php": "PHP",
+            "perl": "Perl",
+            "pl": "Perl",
+            "r": "R",
+            "lua": "Lua",
+            "haskell": "Haskell",
+            "hs": "Haskell",
+            "scala": "Scala",
+            "unknown": "Unknown",
         }
 
-        # Try direct mapping
+        # Try direct mapping first
         if language in mappings:
             return mappings[language]
 
-        # Handle variations
-        if "python" in language:
-            return "Python"
-        if "javascript" in language or "js" in language:
-            return "JavaScript"
-        if "typescript" in language or "ts" in language:
-            return "TypeScript"
-        if "html" in language:
-            return "HTML"
-        if "css" in language or "stylesheet" in language:
-            return "CSS"
-        if "json" in language:
-            return "JSON"
-        if "markdown" in language or "md" in language:
-            return "Markdown"
-        if "shell" in language or "bash" in language:
-            return "Shell"
-        if "docker" in language:
-            return "Dockerfile"
-        if "yaml" in language or "yml" in language:
-            return "YAML"
-        if "sql" in language:
-            return "SQL"
+        # Try to find a partial match
+        for key, value in mappings.items():
+            if key in language:
+                return value
 
-        # Default to original name if no mapping found
-        return language.capitalize()
+        # If no match found, capitalize the first letter of each word
+        return " ".join(word.capitalize() for word in language.split())
 
 
 def get_language_by_extension(ext: str) -> str:
@@ -415,9 +452,14 @@ def detect_language(content: str, filename: Optional[str] = None) -> str:
     Returns:
         str: Detected language name
     """
+    print("\nDetect Language Called:")
+    print(f"Content: {'None' if content is None else content[:50]}...")
+    print(f"Filename: {filename}")
+
     detector = LanguageDetector()
     result = detector.detect_language(content, filename)
-    return "Text" if result == "Text only" else result
+    print(f"Final Result: {result}")
+    return result
 
 
 def detect_language_by_patterns(content: str, filename: Optional[str] = None) -> str:

@@ -8,7 +8,6 @@ from argparse import ArgumentParser, Namespace
 from typing import List, Optional
 
 from . import __version__
-from .__main__ import read_ignore_patterns, write_output
 from .models.model_config import DEFAULT_MODEL, MODEL_ENCODINGS, TokenizerConfig
 from .services.filesystem_service import RealFileSystemService
 from .services.tokenizer_service import TokenizerService
@@ -40,7 +39,7 @@ def create_argument_parser() -> ArgumentParser:
         "--model",
         default=DEFAULT_MODEL,
         choices=list(MODEL_ENCODINGS.keys()),
-        help=f"Model to use for tokenization",
+        help="Model to use for tokenization",
     )
     parser.add_argument(
         "--max-tokens", type=int, help="Maximum tokens per file (default: model's context limit)"

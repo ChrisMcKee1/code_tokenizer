@@ -8,7 +8,7 @@ pytest-benchmark==4.0.0
 coverage==7.4.1
 
 # Linting and Formatting
-black==24.2.0
+black==24.1.1
 isort==5.13.2
 flake8==7.0.0
 mypy==1.8.0
@@ -16,10 +16,13 @@ mypy==1.8.0
 # Build and Distribution
 build==1.0.3
 twine==4.0.2
-setuptools>=69.0.0
-setuptools_scm>=8.0.0
-wheel>=0.42.0
+setuptools==69.0.3
+setuptools-scm==8.0.4
+wheel==0.42.0
 
 # Type stubs for development
 types-setuptools>=69.0.0.0
-types-pygments>=2.17.0.0 
+types-pygments>=2.17.0.0
+
+# Git hooks
+pre-commit==3.6.1 
