@@ -1,0 +1,2 @@
+[console_scripts]
+code-tokenizer = code_tokenizer.cli:main

@@ -1,0 +1,6 @@
+@ProjectWithoutGitignore_HostAddress = http://localhost:5122
+
+GET {{ProjectWithoutGitignore_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
