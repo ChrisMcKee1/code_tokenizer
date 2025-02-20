@@ -210,7 +210,7 @@ def run_benchmark(directory: str, category: str = "performance", iterations: int
     all_timings: List[Dict[str, float]] = []
 
     for i in range(iterations):
-        console.print(f"\n[bold cyan]Iteration {i+1}/{iterations}[/bold cyan]")
+        console.print(f"\n[bold cyan]Iteration {i + 1}/{iterations}[/bold cyan]")
 
         execution_time, stats, timings = run_tokenizer(directory, category_dir, run_id, i + 1)
         times.append(execution_time)
