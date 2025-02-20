@@ -9,5 +9,3 @@
 - Added support for custom gitignore file path with new --gitignore option, allowing users to specify alternative .gitignore locations.
 - Updated the repository fork link in README.md to point to the correct GitHub repository.
 - Fixed the broken "Report Bug" link in README.md to correctly point to the issues page.
-- Added comprehensive test scenarios for Python, Java, and C# applications, covering basic tokenization, empty input, special characters, comments, large files, and encoding handling.
-- Created new test project structures using CLI tools for C#, Python, and Java, including proper .gitignore files and testing frameworks. 
