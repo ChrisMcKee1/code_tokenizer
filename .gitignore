@@ -168,3 +168,9 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
+
+# Project-specific
+/outputs/
+/output/
+/code_tokenizer_analysis.md/
+.cursor-updates

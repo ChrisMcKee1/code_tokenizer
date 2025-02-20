@@ -1,9 +1,10 @@
 """Tokenizer service for processing code files."""
 
 import json
+import logging
 import os
-import sys
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional, Union, cast
 
 from ..core.tokenizer import CodeTokenizer
@@ -12,7 +13,14 @@ from ..models.model_config import TokenizerConfig
 from ..services.filesystem_service import FileSystemService, RealFileSystemService
 from ..services.language_detector import LanguageDetector
 from ..ui.progress_display import ProgressDisplay
-from ..utils.path_utils import should_ignore_file, should_ignore_path
+from ..utils.path_utils import should_ignore_path
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# Constants
+MAX_WORKERS = 4  # Maximum number of threads for parallel processing
+CHUNK_SIZE = 1024 * 1024  # 1MB chunk size for file reading
 
 
 def is_binary_file(content: bytes) -> bool:
@@ -43,7 +51,7 @@ def is_binary_file(content: bytes) -> bool:
 
 
 class TokenizerService:
-    """Service for tokenizing code files."""
+    """Service for tokenizing code files with optimized performance."""
 
     MAX_FILE_SIZE = 1024 * 1024  # 1MB
 
@@ -55,8 +63,8 @@ class TokenizerService:
         """Initialize the tokenizer service.
 
         Args:
-            config: Configuration for the tokenizer, either as a dict or TokenizerConfig
-            fs_service: Optional file system service (defaults to RealFileSystemService)
+            config: Configuration for the tokenizer
+            fs_service: Optional file system service
         """
         if isinstance(config, dict):
             config = TokenizerConfig(config)
@@ -68,107 +76,149 @@ class TokenizerService:
         self.language_detector = LanguageDetector()
         self.progress = ProgressDisplay()
         self.fs_service = fs_service or RealFileSystemService()
-        self.stats: Dict[str, int] = {
+        self._executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
+
+        # Initialize statistics
+        self.stats: Dict[str, Any] = {
             "total_files": 0,
             "files_processed": 0,
             "total_tokens": 0,
+            "total_size": 0,
             "errors": 0,
+            "languages": defaultdict(int),
+            "processing_time": 0.0,
         }
-        self.ignore_patterns = []
 
-        # Load gitignore patterns from .gitignore file if it exists and base_dir is set
+        # Load gitignore patterns
+        self.ignore_patterns = self._load_ignore_patterns()
+
+    def _load_ignore_patterns(self) -> List[str]:
+        """Load gitignore patterns.
+
+        Returns:
+            List[str]: List of ignore patterns
+        """
+        patterns = []
         if not self.config.bypass_gitignore and self.config.base_dir:
             gitignore_path = os.path.join(self.config.base_dir, ".gitignore")
             if self.fs_service.is_file(gitignore_path):
-                content = self.fs_service.read_file(gitignore_path)
-                if isinstance(content, bytes):
-                    content = content.decode("utf-8")
-                self.ignore_patterns = [
-                    line.strip()
-                    for line in content.splitlines()
-                    if line.strip() and not line.startswith("#")
-                ]
+                try:
+                    content = self.fs_service.read_file(gitignore_path)
+                    if isinstance(content, bytes):
+                        content = content.decode("utf-8")
+                    patterns = [
+                        line.strip()
+                        for line in content.splitlines()
+                        if line.strip() and not line.startswith("#")
+                    ]
+                except Exception as e:
+                    logger.warning(f"Failed to read .gitignore: {str(e)}")
+        return patterns
 
-    def process_file(self, file_path: str) -> Optional[Dict[str, Any]]:
-        """Process a single file.
+    def _process_file_chunk(self, chunk: bytes, file_path: str) -> Optional[Dict[str, Any]]:
+        """Process a chunk of file content.
 
         Args:
-            file_path (str): Path to the file to process
+            chunk: File content chunk
+            file_path: Path to the file
 
         Returns:
-            Optional[Dict[str, Any]]: File processing statistics or None if file should be skipped
+            Optional[Dict[str, Any]]: Chunk processing results
         """
         try:
-            # Check if file exists and is readable
+            # Check for binary content
+            if is_binary_file(chunk):
+                logger.debug(f"Skipping binary chunk in file: {file_path}")
+                return None
+
+            # Decode content
+            try:
+                content = chunk.decode("utf-8")
+            except UnicodeDecodeError:
+                logger.debug(f"Failed to decode chunk in file: {file_path}")
+                return None
+
+            # Process content
+            language = self.language_detector.detect_language(content, file_path)
+            tokens = self.tokenizer.count_tokens(content)
+
+            return {
+                "language": language,
+                "tokens": tokens,
+                "size": len(chunk),
+            }
+
+        except Exception as e:
+            logger.warning(f"Error processing chunk in {file_path}: {str(e)}")
+            return None
+
+    def process_file(self, file_path: str) -> Optional[Dict[str, Any]]:
+        """Process a single file with chunked reading and parallel processing.
+
+        Args:
+            file_path: Path to the file to process
+
+        Returns:
+            Optional[Dict[str, Any]]: File processing statistics
+        """
+        try:
+            # Validate file
             if not self.fs_service.exists(file_path):
-                print(f"File not found: {file_path}", file=sys.stderr)
-                return {
-                    "success": False,
-                    "path": file_path,
-                    "language": "unknown",
-                    "size": 0,
-                    "tokens": 0,
-                    "error": "File not found",
-                }
+                logger.warning(f"File not found: {file_path}")
+                return None
 
             if not self.fs_service.is_file(file_path):
-                print(f"Not a file: {file_path}", file=sys.stderr)
-                return {
-                    "success": False,
-                    "path": file_path,
-                    "language": "unknown",
-                    "size": 0,
-                    "tokens": 0,
-                    "error": "Not a file",
-                }
-
-            # Get file extension and check if it should be processed
-            filename = os.path.basename(file_path)
-            _, ext = os.path.splitext(filename)
-            ext = ext.lstrip(".")
-
-            # Skip files that should be ignored based on extension
-            if (
-                not self.config.bypass_gitignore
-                and self.config.base_dir
-                and should_ignore_file(file_path, self.config.base_dir, self.ignore_patterns)
-            ):
+                logger.warning(f"Not a file: {file_path}")
                 return None
 
             # Check file size
             file_size = self.fs_service.get_file_size(file_path)
             if file_size > self.MAX_FILE_SIZE:
-                print(f"File too large: {file_path}", file=sys.stderr)
+                logger.warning(f"File too large: {file_path}")
                 return None
 
-            # Read file content
-            content = self.fs_service.read_file(file_path)
+            # Read and process file in chunks
+            chunks = []
+            offset = 0
+            while offset < file_size:
+                chunk = self.fs_service.read_file_chunk(file_path, offset, CHUNK_SIZE)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                offset += len(chunk)
 
-            # Check for binary content first
-            if isinstance(content, bytes):
-                if is_binary_file(content):
-                    print(f"Skipping binary file: {file_path}", file=sys.stderr)
-                    return None
-                try:
-                    content = content.decode("utf-8")
-                except UnicodeDecodeError:
-                    print(f"Skipping binary file: {file_path}", file=sys.stderr)
-                    return None
+            # Process chunks in parallel
+            futures = [
+                self._executor.submit(self._process_file_chunk, chunk, file_path)
+                for chunk in chunks
+            ]
 
-            # Only process text content
-            language = self.language_detector.detect_language(content, filename)
-            tokens = self.tokenizer.count_tokens(content)
+            # Collect results
+            results = []
+            for future in as_completed(futures):
+                result = future.result()
+                if result:
+                    results.append(result)
+
+            if not results:
+                return None
+
+            # Aggregate results
+            total_tokens = sum(r["tokens"] for r in results)
+            total_size = sum(r["size"] for r in results)
+            language = max(results, key=lambda x: x["tokens"])["language"]
 
             return {
                 "success": True,
                 "path": file_path,
                 "language": language,
-                "size": file_size,
-                "tokens": tokens,
+                "size": total_size,
+                "tokens": total_tokens,
             }
 
         except Exception as e:
-            print(f"Error processing file {file_path}: {str(e)}", file=sys.stderr)
+            logger.error(f"Error processing file {file_path}: {str(e)}")
+            self.stats["errors"] += 1
             return {
                 "success": False,
                 "path": file_path,
@@ -181,7 +231,7 @@ class TokenizerService:
     def process_directory(
         self, directory: str, output_path: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Process all files in a directory.
+        """Process all files in a directory with parallel processing.
 
         Args:
             directory: Directory to process
@@ -205,101 +255,91 @@ class TokenizerService:
         try:
             # Get list of files
             files = self.fs_service.list_files(directory, recursive=True)
+            total_files = len(files)
+            self.progress.set_total(total_files)
 
-            # Process each file
+            # Process files in parallel
+            futures = {}
             for file_path in files:
+                # Get relative path
+                rel_path = os.path.relpath(file_path, directory).replace(os.sep, "/")
+
+                # Skip ignored files
+                if not self.config.bypass_gitignore:
+                    if should_ignore_path(rel_path, self.ignore_patterns)[0]:
+                        stats["skipped_files"] = cast(int, stats["skipped_files"]) + 1
+                        continue
+
+                # Submit file for processing
+                future = self._executor.submit(self.process_file, file_path)
+                futures[future] = rel_path
+
+            # Collect results
+            for future in as_completed(futures):
+                rel_path = futures[future]
                 try:
-                    # Get relative path
-                    rel_path = os.path.relpath(file_path, directory).replace(os.sep, "/")
-
-                    # Skip files matching ignore patterns only if not bypassing gitignore
-                    if not self.config.bypass_gitignore:
-                        if should_ignore_path(rel_path, self.ignore_patterns)[0]:
-                            stats["skipped_files"] = cast(int, stats["skipped_files"]) + 1
-                            continue
-
-                    # Process file
-                    file_stats = self.process_file(file_path)
+                    file_stats = future.result()
                     if file_stats:
-                        stats["files_processed"] = cast(int, stats["files_processed"]) + 1
-                        stats["total_tokens"] = (
-                            cast(int, stats["total_tokens"]) + file_stats["tokens"]
-                        )
-                        stats["total_size"] = cast(int, stats["total_size"]) + file_stats["size"]
-                        languages = cast(Dict[str, int], stats["languages"])
-                        languages[file_stats["language"]] += 1
-                        if file_stats.get("truncated", False):
-                            stats["truncated_files"] = cast(int, stats["truncated_files"]) + 1
-                        successful_files.append(rel_path)
-                    else:
-                        # If bypass_gitignore is True, try to process binary files
-                        if self.config.bypass_gitignore:
-                            try:
-                                # Get file size
-                                size = self.fs_service.get_file_size(file_path)
-                                # Add as binary file
-                                stats["files_processed"] = cast(int, stats["files_processed"]) + 1
-                                stats["total_size"] = cast(int, stats["total_size"]) + size
-                                languages = cast(Dict[str, int], stats["languages"])
-                                languages["Binary"] += 1
-                                successful_files.append(rel_path)
-                                continue
-                            except Exception:
-                                pass
-                        failed_files.append(rel_path)
+                        if file_stats["success"]:
+                            stats["files_processed"] = cast(int, stats["files_processed"]) + 1
+                            stats["total_tokens"] = (
+                                cast(int, stats["total_tokens"]) + file_stats["tokens"]
+                            )
+                            stats["total_size"] = (
+                                cast(int, stats["total_size"]) + file_stats["size"]
+                            )
+                            languages = cast(Dict[str, int], stats["languages"])
+                            languages[file_stats["language"]] += 1
+                            successful_files.append(rel_path)
+                        else:
+                            failed_files.append(rel_path)
                 except Exception as e:
+                    logger.error(f"Error processing {rel_path}: {str(e)}")
                     failed_files.append(rel_path)
-                    print(f"Warning: Failed to process {rel_path}: {str(e)}")
+
+                # Update progress
+                self.progress.update_progress(
+                    len(successful_files) + len(failed_files), total_files
+                )
 
             # Write output if path provided
             if output_path:
-                result = {
-                    "stats": stats,
-                    "successful_files": successful_files,
-                    "failed_files": failed_files,
-                    "model": self.config.model_name,
-                }
-                self.write_output(output_path, result)
+                self.write_output(
+                    output_path,
+                    {
+                        "stats": stats,
+                        "successful_files": successful_files,
+                        "failed_files": failed_files,
+                        "model": self.model_name,
+                    },
+                )
 
             return {
                 "stats": stats,
                 "successful_files": successful_files,
                 "failed_files": failed_files,
-                "model": self.config.model_name,
+                "model": self.model_name,
             }
 
         except Exception as e:
+            logger.error(f"Error processing directory {directory}: {str(e)}")
             raise TokenizationError(f"Failed to process directory: {str(e)}")
 
-    def get_stats(self) -> Dict[str, int]:
-        """Get tokenization statistics.
-
-        Returns:
-            Dictionary containing tokenization statistics
-        """
-        return self.stats.copy()
-
-    def reset_stats(self) -> None:
-        """Reset tokenization statistics."""
-        self.stats = {
-            "total_files": 0,
-            "files_processed": 0,
-            "total_tokens": 0,
-            "errors": 0,
-        }
+        finally:
+            self.progress.finish()
 
     def write_output(self, output_path: str, data: Dict[str, Any]) -> None:
-        """Write output to a file.
+        """Write output to a file with error handling.
 
         Args:
-            output_path (str): Path to write output to
-            data (Dict[str, Any]): Data to write
+            output_path: Path to write output to
+            data: Data to write
 
         Raises:
             TokenizationError: If writing fails
         """
         try:
-            # Create output directory if it doesn't exist
+            # Create output directory if needed
             output_dir = os.path.dirname(output_path)
             if output_dir:
                 self.fs_service.create_directory(output_dir)
@@ -353,8 +393,32 @@ class TokenizerService:
                         markdown.append(f"- {file_path}\n")
 
                 self.fs_service.write_file(output_path, "".join(markdown))
+
         except Exception as e:
+            logger.error(f"Failed to write output: {str(e)}")
             raise TokenizationError(f"Failed to write output: {str(e)}")
+
+    def __del__(self) -> None:
+        """Cleanup resources."""
+        if hasattr(self, "_executor"):
+            self._executor.shutdown(wait=False)
+
+    def get_stats(self) -> Dict[str, int]:
+        """Get tokenization statistics.
+
+        Returns:
+            Dictionary containing tokenization statistics
+        """
+        return self.stats.copy()
+
+    def reset_stats(self) -> None:
+        """Reset tokenization statistics."""
+        self.stats = {
+            "total_files": 0,
+            "files_processed": 0,
+            "total_tokens": 0,
+            "errors": 0,
+        }
 
     def read_ignore_patterns(self, directory: str) -> List[str]:
         """Read ignore patterns from .gitignore file.
