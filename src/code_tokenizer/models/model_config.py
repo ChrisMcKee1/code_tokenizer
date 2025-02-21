@@ -1,7 +1,8 @@
 """Model configuration and encoding mappings."""
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set
+import dataclasses
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Set, Union
 
 # Default model configuration values
 DEFAULT_MODEL = "gpt-4o"
@@ -14,138 +15,84 @@ class TokenizerConfig:
     """Configuration for the tokenizer service."""
 
     model_name: str = DEFAULT_MODEL
-    max_tokens: int = DEFAULT_MAX_TOKENS
-    base_dir: Optional[str] = None
-    output_dir: Optional[str] = None
-    output_format: str = DEFAULT_OUTPUT_FORMAT
+    max_tokens: Optional[int] = None
     bypass_gitignore: bool = False
+    base_dir: Optional[str] = None
+    output_format: str = "markdown"
+    output_dir: Optional[str] = None
     include_metadata: bool = True
-    ignore_patterns: List[str] = field(default_factory=list)
-    file_extensions: Set[str] = field(default_factory=set)
-    skip_extensions: Set[str] = field(default_factory=set)
+    file_extensions: Optional[Set[str]] = None
+    skip_extensions: Optional[Set[str]] = None
     show_progress: bool = True
-    verbose: bool = False
-    debug: bool = False
+    # Add new sanitization options
+    preserve_comments: bool = True
+    aggressive_whitespace: bool = False
+    sanitize_content: bool = True
 
-    def __init__(self, config_dict: Optional[Dict[str, Any]] = None) -> None:
-        """Initialize the configuration.
+    def __init__(self, config: Optional[Union[Dict[str, Any], "TokenizerConfig"]] = None) -> None:
+        """Initialize configuration from dictionary or another config.
 
         Args:
-            config_dict: Optional dictionary with configuration values
+            config: Configuration dictionary or TokenizerConfig instance
         """
-        if config_dict is None:
-            config_dict = {}
+        if config is None:
+            config = {}
+        elif isinstance(config, TokenizerConfig):
+            # Copy from another config
+            for field in dataclasses.fields(self):
+                setattr(self, field.name, getattr(config, field.name))
+            return
 
-        self.model_name = config_dict.get("model_name", DEFAULT_MODEL)
-        self.max_tokens = config_dict.get("max_tokens", DEFAULT_MAX_TOKENS)
-        self.base_dir = config_dict.get("base_dir")
-        self.output_dir = config_dict.get("output_dir")
-        self.output_format = config_dict.get("output_format", DEFAULT_OUTPUT_FORMAT)
-        self.bypass_gitignore = config_dict.get("bypass_gitignore", False)
-        self.include_metadata = config_dict.get("include_metadata", True)
-        self.ignore_patterns = config_dict.get("ignore_patterns", [])
-        self.show_progress = config_dict.get("show_progress", True)
-        self.verbose = config_dict.get("verbose", False)
-        self.debug = config_dict.get("debug", False)
+        # Set defaults first
+        self.model_name = DEFAULT_MODEL
+        self.max_tokens = None
+        self.bypass_gitignore = False
+        self.base_dir = None
+        self.output_format = "markdown"
+        self.output_dir = None
+        self.include_metadata = True
+        self.file_extensions = None
+        self.skip_extensions = None
+        self.show_progress = True
+        self.preserve_comments = True
+        self.aggressive_whitespace = False
+        self.sanitize_content = True
 
-        # When bypass_gitignore is True, we don't use any extension filters
-        if self.bypass_gitignore:
-            self.file_extensions = set()
-            self.skip_extensions = set()
-        else:
-            # Handle file_extensions
-            file_extensions = config_dict.get("file_extensions")
-            if file_extensions is None:
-                # Use default extensions
-                file_extensions = {
-                    "py",
-                    "js",
-                    "ts",
-                    "jsx",
-                    "tsx",  # Code files
-                    "json",
-                    "yaml",
-                    "yml",  # Config files
-                    "txt",
-                    "md",  # Documentation
-                    "html",
-                    "css",
-                    "scss",  # Web files
-                    "sh",
-                    "bash",  # Shell scripts
-                    "xml",
-                    "ini",
-                    "conf",  # Other config files
-                    "gitignore",
-                    ".gitignore",  # Special files
-                    "env",  # Environment files
-                    "cs",
-                    "java",
-                    "go",
-                    "rs",  # Other languages
-                }
-            else:
-                # Convert to set and strip dots
-                file_extensions = {ext.lstrip(".") for ext in file_extensions}
-            self.file_extensions = file_extensions
+        # Update from config dict
+        if isinstance(config, dict):
+            for key, value in config.items():
+                if hasattr(self, key):
+                    setattr(self, key, value)
 
-            # Handle skip_extensions
-            skip_extensions = config_dict.get("skip_extensions")
-            if skip_extensions is None:
-                # Use default skip_extensions
-                skip_extensions = {
-                    "pyc",
-                    "pyo",
-                    "pyd",  # Python bytecode
-                    "dll",
-                    "so",
-                    "dylib",  # Binary libraries
-                    "exe",
-                    "bin",
-                    "obj",  # Executables and object files
-                    "class",
-                    "jar",  # Java bytecode
-                    "png",
-                    "jpg",
-                    "jpeg",
-                    "gif",
-                    "ico",  # Images
-                    "pdf",
-                    "doc",
-                    "docx",
-                    "xls",
-                    "xlsx",  # Documents
-                    "zip",
-                    "tar",
-                    "gz",
-                    "7z",
-                    "rar",  # Archives
-                }
-            else:
-                # Convert to set and strip dots
-                skip_extensions = {ext.lstrip(".") for ext in skip_extensions}
-            self.skip_extensions = skip_extensions
+        # Post-initialization validation
+        self.validate()
+
+    def validate(self):
+        """Validate configuration values."""
+        if self.model_name not in MODEL_ENCODINGS:
+            raise ValueError(f"Model {self.model_name} not supported")
+
+        if self.max_tokens is None:
+            self.max_tokens = get_model_token_limit(self.model_name)
+
+        if self.output_format not in ["markdown", "json", "yaml", "text"]:
+            raise ValueError(f"Output format {self.output_format} not supported")
+
+        # Convert file extensions to sets if provided as lists
+        if self.file_extensions and not isinstance(self.file_extensions, set):
+            self.file_extensions = set(self.file_extensions)
+        if self.skip_extensions and not isinstance(self.skip_extensions, set):
+            self.skip_extensions = set(self.skip_extensions)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert the configuration to a dictionary.
+        """Convert config to dictionary.
 
         Returns:
-            Dict[str, Any]: Dictionary representation of the configuration
+            Dict[str, Any]: Configuration as dictionary
         """
         return {
-            "model_name": self.model_name,
-            "max_tokens": self.max_tokens,
-            "base_dir": self.base_dir,
-            "output_dir": self.output_dir,
-            "output_format": self.output_format,
-            "bypass_gitignore": self.bypass_gitignore,
-            "include_metadata": self.include_metadata,
-            "ignore_patterns": self.ignore_patterns,
-            "file_extensions": list(self.file_extensions) if self.file_extensions else None,
-            "skip_extensions": list(self.skip_extensions) if self.skip_extensions else None,
-            "show_progress": self.show_progress,
-            "verbose": self.verbose,
-            "debug": self.debug,
+            field.name: getattr(self, field.name)
+            for field in dataclasses.fields(self)
         }
 
 
