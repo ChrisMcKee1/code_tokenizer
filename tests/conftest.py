@@ -1,19 +1,12 @@
 """Test configuration and fixtures."""
 
 import os
-import shutil
-import tempfile
-from pathlib import Path
-from typing import Dict, Generator, Optional
+from typing import Dict
 
 import pytest
 
 from code_tokenizer.models.model_config import TokenizerConfig
-from code_tokenizer.services.filesystem_service import (
-    FileSystemService,
-    MockFileSystemService,
-    RealFileSystemService,
-)
+from code_tokenizer.services.filesystem_service import FileSystemService, MockFileSystemService
 from code_tokenizer.services.tokenizer_service import TokenizerService
 
 
@@ -63,7 +56,8 @@ class BaseFileSystemTest:
     def setup_sample_codebase(self, fs_service, base_dir):
         """Set up a sample codebase in the mock filesystem."""
         # Create the base directory
-        fs_service.create_directory(str(base_dir))
+        base_dir = str(base_dir)
+        fs_service.create_directory(base_dir)
 
         # Sample files with content
         files = {
@@ -77,8 +71,10 @@ class BaseFileSystemTest:
 
         # Create each file
         for filename, content in files.items():
-            file_path = base_dir / filename
-            fs_service.write_file(str(file_path), content)
+            file_path = os.path.join(base_dir, filename)
+            # Normalize path to use forward slashes
+            file_path = file_path.replace(os.sep, '/')
+            fs_service.write_file(file_path, content)
 
         return base_dir
 

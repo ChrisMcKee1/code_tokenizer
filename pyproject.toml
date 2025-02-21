@@ -32,21 +32,31 @@ classifiers = [
 ]
 keywords = ["llm", "tokenizer", "code-analysis", "documentation", "cli"]
 dependencies = [
-    "tiktoken",
-    "pygments",
-    "rich",
-    "pathspec",
-    "python-dotenv",
+    "tiktoken>=0.9.0",
+    "pygments>=2.17.2",
+    "rich>=13.7.0",
+    "pathspec>=0.12.1",
+    "python-dotenv>=1.0.0",
+    "setuptools>=69.0.0",
+    "setuptools_scm>=8.0.0",
+    "wheel>=0.42.0",
+    "types-setuptools>=69.0.0.0",
+    "types-pygments>=2.17.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=6.0",
-    "pytest-cov",
-    "black",
-    "isort",
-    "flake8",
-    "mypy",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "pytest-benchmark>=4.0.0",
+    "black>=24.2.0",
+    "isort>=5.13.2",
+    "flake8>=7.0.0",
+    "mypy>=1.8.0",
+    "coverage>=7.4.1",
+    "build>=1.0.3",
+    "twine>=4.0.2",
+    "types-pytest>=8.0.0.0",
 ]
 
 [project.urls]

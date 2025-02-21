@@ -184,7 +184,7 @@ def get_relative_path(path: str, base_path: str) -> str:
         # Normalize the result
         return normalize_path(rel_path)
     except ValueError:
-        # If paths are on different drives or other error, return normalized path
+        # If paths are on different drives or other error, return the original path
         return path
 
 

@@ -1,23 +1,15 @@
 """Tests for UI components."""
 
-import os
-import unittest
-from unittest.mock import MagicMock, patch
-
 import pytest
 from rich.console import Console
 from rich.layout import Layout
-from rich.panel import Panel
 from rich.progress import Progress
-from rich.table import Table
 
 from code_tokenizer.ui.progress_display import (
-    DISPLAY_MODE,
     DisplayMode,
     create_display_layout,
     create_progress_group,
     create_stats_table,
-    update_display,
 )
 
 

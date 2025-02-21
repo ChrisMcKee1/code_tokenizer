@@ -1,12 +1,9 @@
 """Edge cases and error handling tests."""
 
-import os
 import sys
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
-
-import pytest
 
 from code_tokenizer.services.filesystem_service import MockFileSystemService
 from code_tokenizer.services.tokenizer_service import TokenizerService

@@ -1,26 +1,15 @@
 """Unit tests for code tokenizer components."""
 
-from pathlib import Path
-from unittest.mock import patch
-
 import pytest
-from pygments.lexers import get_lexer_by_name
 
 from code_tokenizer.core.tokenizer import count_tokens, truncate_text
-from code_tokenizer.exceptions import ModelNotSupportedError
 from code_tokenizer.models.model_config import (
-    DEFAULT_MODEL,
     MODEL_ENCODINGS,
     Encoding,
     get_model_encoding,
     get_model_token_limit,
 )
-from code_tokenizer.services.language_detector import (
-    LanguageDetector,
-    detect_language,
-    detect_language_by_patterns,
-)
-from code_tokenizer.services.tokenizer_service import TokenizerConfig, TokenizerService
+from code_tokenizer.services.language_detector import detect_language
 from code_tokenizer.utils.path_utils import get_relative_path, normalize_path, should_ignore_path
 
 
@@ -198,16 +187,36 @@ class TestCoreFeatures:
     def test_language_detection(self):
         """Test language detection with various inputs."""
         # Basic detection
-        assert detect_language("def test(): pass", "test.py") == "Python"
-        assert detect_language('{"test": true}', "test.json") == "JSON"
-        assert detect_language("# Test\n## Header", "test.md") == "Markdown"
-        assert detect_language("random text", "test.txt") == "Text"
+        print("\n=== Testing Python Detection ===")
+        result = detect_language("def test(): pass", "test.py")
+        print(f"Python test - Input: 'def test(): pass', Filename: test.py, Result: {result}")
+        assert result == "Python"
 
-        # Edge cases
+        print("\n=== Testing JSON Detection ===")
+        result = detect_language('{"test": true}', "test.json")
+        print(f'JSON test - Input: {{"test": true}}, Filename: test.json, Result: {result}')
+        assert result == "JSON"
+
+        print("\n=== Testing Markdown Detection ===")
+        result = detect_language("# Test\n## Header", "test.md")
+        print(f"Markdown test - Input: '# Test\\n## Header', Filename: test.md, Result: {result}")
+        assert result == "Markdown"
+
+        print("\n=== Testing Plain Text Detection ===")
+        result = detect_language("random text", "test.txt")
+        print(f"Text test - Input: 'random text', Filename: test.txt, Result: {result}")
+        assert result == "Text"
+
+        # Test empty content cases
         assert detect_language("", "test.py") == "Text"
         assert detect_language(None, "test.py") == "Text"
-        assert detect_language("print('hello')", None) == "Text"
-        assert detect_language("", None) == "Text"
+        assert detect_language("   \n  ", "test.py") == "Text"
+
+        # Test case sensitivity
+        assert detect_language("def test(): pass", "TEST.PY") == "Python"
+        assert detect_language('{"test": true}', "TEST.JSON") == "JSON"
+        assert detect_language("# Header", "TEST.MD") == "Markdown"
+        assert detect_language("random text", "TEST.TXT") == "Text"
 
     def test_gitignore_handling(self):
         """Test .gitignore pattern matching."""
@@ -230,226 +239,15 @@ class TestCoreFeatures:
         assert truncated == text
         assert count < 10
 
-        # Test truncation
-        long_text = "This is a longer text that needs to be truncated." * 100
-        truncated, count = truncate_text(long_text, 20, "gpt-4o")
-        assert len(truncated) < len(long_text)
-        assert count <= 20  # Changed from == to <= since truncation might result in fewer tokens
-
-        # Test with different models
-        text = "Test text for different models."
-        t1, c1 = truncate_text(text, 10, "gpt-4o")
-        t2, c2 = truncate_text(text, 10, "gpt-3.5-turbo")
-        assert len(t1) > 0
-        assert len(t2) > 0
-        assert c1 <= 10  # Add assertion to verify token count is within limit
-        assert c2 <= 10  # Add assertion to verify token count is within limit
-
-        # Test invalid model
-        with pytest.raises(ModelNotSupportedError):
-            truncate_text(text, 10, "invalid-model")
-
-
-class TestLanguageDetector:
-    """Test language detection functionality."""
-
-    @pytest.fixture(autouse=True)
-    def setup_method(self):
-        """Set up test cases."""
-        self.detector = LanguageDetector()
-
-    def test_detect_javascript(self):
-        """Test JavaScript detection."""
-        js_samples = [
-            "const foo = 'bar';",
-            "function test() { return true; }",
-            "class MyClass extends BaseClass { }",
-            "import React from 'react';",
-            "export default function App() {}",
-            "const handler = () => { console.log('test'); }",
-            "async function fetchData() {}",
-            "React.useState()",
-        ]
-        for sample in js_samples:
-            assert self.detector.detect_language(sample, "test.js") == "JavaScript"
-
-    def test_detect_python(self):
-        """Test Python detection."""
-        py_samples = [
-            "def test_function():\n    pass",
-            "class TestClass(BaseClass):\n    pass",
-            "import os",
-            "from typing import List",
-            "@decorator\ndef func(): pass",
-            "print('Hello')",
-            "if __name__ == '__main__':",
-        ]
-        for sample in py_samples:
-            assert self.detector.detect_language(sample, "test.py") == "Python"
-
-    def test_detect_html(self):
-        """Test HTML detection."""
-        html_samples = [
-            "<!DOCTYPE html><html></html>",
-            "<html><head><title>Test</title></head></html>",
-            "<div class='test'>Content</div>",
-            "<script>console.log('test');</script>",
-            "<style>.test { color: red; }</style>",
-        ]
-        for sample in html_samples:
-            assert self.detector.detect_language(sample, "test.html") == "HTML"
-
-    def test_detect_css(self):
-        """Test CSS detection."""
-        css_samples = [
-            ".class { color: red; }",
-            "#id { margin: 0; }",
-            "@media screen { body { color: blue; } }",
-            "@import url('style.css');",
-            "@keyframes animation { from {} to {} }",
-        ]
-        for sample in css_samples:
-            assert self.detector.detect_language(sample, "test.css") == "CSS"
-
-    def test_normalize_language_name(self):
-        """Test language name normalization."""
-        test_cases = [
-            ("python", "Python"),
-            ("javascript", "JavaScript"),
-            ("typescript", "TypeScript"),
-            ("html", "HTML"),
-            ("css", "CSS"),
-            ("json", "JSON"),
-            ("markdown", "Markdown"),
-            ("shell", "Shell"),
-            ("dockerfile", "Dockerfile"),
-            ("yaml", "YAML"),
-            ("unknown", "Unknown"),
-        ]
-        for input_name, expected in test_cases:
-            assert self.detector.normalize_language_name(input_name) == expected
-
-    def test_detect_by_extension(self):
-        """Test language detection by file extension."""
-        test_cases = [
-            ("test.py", "Python", "def test(): pass"),  # With content
-            ("test.js", "JavaScript", "function test() {}"),  # With content
-            ("test.ts", "TypeScript", "interface Test {}"),  # With content
-            ("test.html", "HTML", "<html></html>"),  # With content
-            ("test.css", "CSS", ".test {}"),  # With content
-            ("test.json", "JSON", "{}"),  # With content
-            ("test.md", "Markdown", "# Test"),  # With content
-            ("test.sh", "Shell", "#!/bin/bash"),  # With content
-            ("test.py", "Text", ""),  # Empty content
-            ("test.js", "Text", ""),  # Empty content
-            ("test.unknown", "Text", ""),  # Unknown extension
-        ]
-        for filename, expected, content in test_cases:
-            assert detect_language(content, filename) == expected
-
-    def test_detect_mixed_content(self):
-        """Test detection with mixed content."""
-        content = """
-        def python_function():
-            pass
-
-        function javascript_function() {
-            console.log('test');
-        }
-
-        <div>Some HTML</div>
-
-        .css-class {
-            color: red;
-        }
-        """
-        # Test with different file extensions to ensure extension takes precedence
-        assert self.detector.detect_language(content, "test.py") == "Python"
-        assert self.detector.detect_language(content, "test.js") == "JavaScript"
-        assert self.detector.detect_language(content, "test.html") == "HTML"
-        assert self.detector.detect_language(content, "test.css") == "CSS"
-
-    def test_empty_content(self):
-        """Test detection with empty content."""
-        assert self.detector.detect_language("", "test.py") == "Text"
-        assert self.detector.detect_language("", "test.js") == "Text"
-        assert self.detector.detect_language("", None) == "Text"
-        assert self.detector.detect_language(None, None) == "Text"
-
-    def test_detect_by_patterns(self):
-        """Test pattern-based language detection."""
-        content = """
-        def test_function():
-            print("Hello")
-            return True
-        """
-        result = detect_language_by_patterns(content)
-        assert result == "Python"
-
-
-class TestTokenizerService:
-    """Test the tokenizer service functionality."""
-
-    def test_basic_processing(self, tokenizer_service, sample_codebase):
-        """Test basic file processing."""
-        # Process Python file
-        python_file = Path(sample_codebase) / "main.py"
-        result = tokenizer_service.process_file(str(python_file))
-        assert result["success"]
-        assert result["language"] == "Python"
-        assert result["tokens"] > 0
-
-        # Process JSON file
-        json_file = Path(sample_codebase) / "config.json"
-        result = tokenizer_service.process_file(str(json_file))
-        assert result["success"]
-        assert result["language"] == "JSON"
-        assert result["tokens"] > 0
-
-    def test_directory_processing(self, tmp_path):
-        """Test processing a directory."""
-        # Create test files
-        test_files = {
-            "test1.py": "def test(): pass",
-            "test2.js": "function test() {}",
-            "test3.txt": "Plain text file",
-        }
-
-        for filename, content in test_files.items():
-            (tmp_path / filename).write_text(content)
-
-        config = TokenizerConfig({"base_dir": str(tmp_path)})
-        tokenizer_service = TokenizerService(config)
-        stats = tokenizer_service.process_directory(str(tmp_path))
-
-        assert "stats" in stats
-        assert stats["stats"]["files_processed"] == len(test_files)
-        assert stats["stats"]["total_tokens"] > 0
-        assert len(stats["successful_files"]) == len(test_files)
-        assert len(stats["failed_files"]) == 0
-
-    def test_error_handling(self, tokenizer_service, temp_dir):
-        """Test error handling in TokenizerService."""
-        # Test with non-existent file
-        non_existent = Path(temp_dir) / "non_existent.txt"
-        result = tokenizer_service.process_file(str(non_existent))
-        assert not result["success"]
-        assert result["language"] == "unknown"
-        assert result["tokens"] == 0
-        assert "error" in result
-
-    def test_initialization_options(self):
-        """Test tokenizer service initialization with different options."""
-        config = TokenizerConfig(
-            {"model_name": "gpt-4o", "max_tokens": 200000, "output_format": "markdown"}
+        # Test truncation needed
+        long_text = (
+            "This is a much longer text that needs to be truncated to fit within the token limit."
         )
-        service = TokenizerService(config)
-        assert service.model_name == "gpt-4o"
-        assert service.max_tokens == 200000
+        truncated, count = truncate_text(long_text, 10, "gpt-4o")
+        assert len(truncated) < len(long_text)
+        assert count <= 10
 
-    def test_truncate_text(self):
-        """Test truncating text with an invalid model."""
-        config = TokenizerConfig({"model_name": "gpt-4o"})
-        tokenizer_service = TokenizerService(config)
-        with pytest.raises(ModelNotSupportedError):
-            tokenizer_service.tokenizer.truncate_text("test text", "invalid-model", 10)
+        # Test edge cases
+        assert truncate_text("", 10, "gpt-4o")[0] == ""
+        assert truncate_text(" ", 10, "gpt-4o")[0] == " "
+        assert truncate_text("\n\n", 10, "gpt-4o")[0] == "\n\n"

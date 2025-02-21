@@ -8,12 +8,21 @@ from unittest.mock import patch
 
 import pytest
 
-from code_tokenizer.__main__ import parse_args, read_ignore_patterns, write_output
+from code_tokenizer.__main__ import parse_args, read_ignore_patterns
 from code_tokenizer.cli import main
+from code_tokenizer.environment import environment
 from code_tokenizer.models.model_config import DEFAULT_MODEL
 from code_tokenizer.services.filesystem_service import MockFileSystemService
 
 from .conftest import BaseFileSystemTest
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    """Set up test environment for all tests."""
+    os.environ["PYTHON_ENV"] = environment.TESTING
+    yield
+    os.environ["PYTHON_ENV"] = environment.DEVELOPMENT
 
 
 class TestCLI(BaseFileSystemTest):
@@ -38,6 +47,7 @@ class TestCLI(BaseFileSystemTest):
             str(output_dir / f"{base_name}_docs.markdown"),
             "--model",
             "gpt-4o",  # Valid model name
+            "--no-progress",  # Disable progress bar in tests
         ]
 
         with patch("code_tokenizer.cli.RealFileSystemService", return_value=mock_fs):
@@ -69,6 +79,7 @@ class TestCLI(BaseFileSystemTest):
             "json",
             "--max-tokens",
             "1000",
+            "--no-progress",  # Disable progress bar in tests
         ]
 
         with patch("code_tokenizer.cli.RealFileSystemService", return_value=mock_fs):
@@ -176,7 +187,6 @@ dist/
             str(comment_gitignore),
             """
 # Just a comment
-        
 # Another comment
 """,
         )
@@ -352,7 +362,6 @@ class TestMainModule(BaseFileSystemTest):
             """
 # Comment 1
    # Indented comment
-   
 # Comment 2
         """,
         )
