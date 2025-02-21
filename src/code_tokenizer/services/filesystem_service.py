@@ -4,7 +4,8 @@ import logging
 import os
 import shutil
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Set
+from pathlib import Path
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -12,6 +13,10 @@ logger = logging.getLogger(__name__)
 
 class FileSystemService(ABC):
     """Base class for file system operations."""
+
+    def normalize_path(self, path: str) -> str:
+        """Normalize a path to use forward slashes."""
+        return path.replace(os.sep, '/')
 
     @abstractmethod
     def create_directory(self, path: str, permissions: Optional[int] = None) -> bool:
@@ -163,9 +168,40 @@ class FileSystemService(ABC):
         """
         pass
 
+    def get_files_in_directory(self, directory: str) -> List[str]:
+        """Get all files in a directory recursively."""
+        if not directory:
+            return []
+            
+        directory = self.normalize_path(directory)
+        if not directory.endswith('/'):
+            directory += '/'
+            
+        files = []
+        
+        for path in self._files.keys():
+            path = self.normalize_path(path)
+            # Check if this path is within the target directory
+            if path.startswith(directory):
+                try:
+                    rel_path = os.path.relpath(path, directory)
+                    # Normalize to forward slashes for consistency
+                    rel_path = rel_path.replace(os.sep, '/')
+                    files.append(rel_path)
+                except ValueError:
+                    # Path is not relative to directory
+                    continue
+                
+        return sorted(files)
+
 
 class RealFileSystemService(FileSystemService):
     """Real file system implementation."""
+
+    def __init__(self):
+        """Initialize the filesystem service."""
+        self.gitignore = None
+        self.base_dir = None
 
     def create_directory(self, path: str, permissions: Optional[int] = None) -> bool:
         """Create a directory with optional permissions."""
@@ -316,134 +352,276 @@ class RealFileSystemService(FileSystemService):
                         files.append(path)
         except OSError as e:
             logger.error(f"Error listing files in {directory}: {str(e)}")
-        return sorted(files)  # Sort for consistent ordering
+        return sorted(files)
 
-    def get_file_size(self, file_path: str) -> int:
+    def get_file_size(self, path: str) -> int:
         """Get the size of a file in bytes."""
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"File not found: {file_path}")
-        return os.path.getsize(file_path)
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"File not found: {path}")
+        return os.path.getsize(path)
+
+    def get_files_in_directory(self, directory: str) -> List[str]:
+        """Get all files in a directory recursively."""
+        if not directory:
+            return []
+
+        directory = self.normalize_path(directory)
+        if not directory.endswith('/'):
+            directory += '/'
+
+        files = []
+        try:
+            for root, _, filenames in os.walk(directory.rstrip('/')):
+                for filename in filenames:
+                    full_path = os.path.join(root, filename)
+                    rel_path = os.path.relpath(full_path, directory.rstrip('/'))
+                    # Normalize to forward slashes for consistency
+                    rel_path = rel_path.replace(os.sep, '/')
+                    files.append(rel_path)
+        except Exception as e:
+            logger.error(f"Error walking directory {directory}: {str(e)}")
+            return []
+
+        return sorted(files)
 
 
 class MockFileSystemService(FileSystemService):
     """Mock file system service for testing."""
 
-    def __init__(self) -> None:
-        """Initialize mock file system."""
-        self._files: Dict[str, Union[str, bytes]] = {}
-        self._permissions: Dict[str, int] = {}
-        self._directories: Dict[str, int] = {}
+    def __init__(self):
+        """Initialize mock file system service."""
+        self._files: Dict[str, str] = {}
+        self._directories: Set[str] = set()
+        self._permissions: Dict[str, int] = {}  # Changed to int for octal permissions
 
-    def create_directory(self, path: str, permissions: Optional[int] = None) -> bool:
-        """Create a directory in the mock file system."""
-        path = os.path.normpath(path)
-        self._directories[path] = permissions or 0o777
-        return True
+    def normalize_path(self, path: str) -> str:
+        """Normalize a path to use forward slashes."""
+        # Convert backslashes to forward slashes and remove any trailing slashes
+        normalized = path.replace('\\', '/').rstrip('/')
+        # Handle absolute Windows paths
+        if normalized.startswith('C:/'):
+            normalized = normalized[2:]  # Remove 'C:'
+        return normalized
 
-    def write_file(
-        self, path: str, content: Union[str, bytes], permissions: Optional[int] = None
-    ) -> bool:
-        """Write content to a file in the mock file system."""
-        path = os.path.normpath(path)
-        self._files[path] = content
-        self._permissions[path] = permissions or 0o666
-        return True
+    def write_file(self, path: str, content: str) -> None:
+        """Write content to a file.
 
-    def read_file(self, path: str) -> Union[str, bytes]:
-        """Read content from a file in the mock file system."""
-        path = os.path.normpath(path)
-        if path not in self._files:
-            raise FileNotFoundError(f"File not found: {path}")
-        return self._files[path]
+        Args:
+            path (str): Path to file
+            content (str): Content to write
+        """
+        normalized_path = self.normalize_path(path)
+        # Ensure the directory exists
+        dir_path = os.path.dirname(normalized_path)
+        if dir_path:
+            self.create_directory(dir_path)
+        self._files[normalized_path] = content
+        self._permissions[normalized_path] = 0o666  # Default file permissions
 
-    def read_file_chunk(self, path: str, offset: int, size: int) -> bytes:
-        """Read a chunk of data from a file in the mock file system."""
-        path = os.path.normpath(path)
-        if path not in self._files:
-            raise FileNotFoundError(f"File not found: {path}")
+    def create_directory(self, path: str, permissions: Optional[int] = None) -> None:
+        """Create a directory.
 
-        if offset < 0:
-            raise ValueError("Offset must be non-negative")
-
-        if size <= 0:
-            raise ValueError("Size must be positive")
-
-        content = self._files[path]
-        if isinstance(content, str):
-            content = content.encode("utf-8")
-
-        return content[offset : offset + size]
-
-    def check_permissions(self, path: str) -> bool:
-        """Check if a path has read permissions."""
-        path = os.path.normpath(path)
-        if path in self._files:
-            return bool(self._permissions.get(path, 0o666) & 0o444)
-        if path in self._directories:
-            return bool(self._directories.get(path, 0o777) & 0o444)
-        return False
-
-    def delete(self, path: str) -> bool:
-        """Delete a file or directory."""
-        path = os.path.normpath(path)
-        if path in self._files:
-            del self._files[path]
-            del self._permissions[path]
-            return True
-        if path in self._directories:
-            del self._directories[path]
-            return True
-        return False
+        Args:
+            path (str): Path to directory
+            permissions (Optional[int], optional): Directory permissions. Defaults to None.
+        """
+        normalized_path = self.normalize_path(path)
+        if normalized_path:
+            self._directories.add(normalized_path)
+            self._permissions[normalized_path] = permissions or 0o777  # Default directory permissions
+            # Create parent directories
+            parent = os.path.dirname(normalized_path)
+            if parent:
+                self.create_directory(parent)
 
     def exists(self, path: str) -> bool:
-        """Check if a path exists."""
-        path = os.path.normpath(path)
-        return path in self._files or path in self._directories
+        """Check if a path exists.
+
+        Args:
+            path (str): Path to check
+
+        Returns:
+            bool: True if path exists, False otherwise
+        """
+        normalized_path = self.normalize_path(path)
+        return normalized_path in self._files or normalized_path in self._directories
 
     def is_file(self, path: str) -> bool:
-        """Check if a path is a file."""
-        path = os.path.normpath(path)
-        return path in self._files
+        """Check if a path is a file.
+
+        Args:
+            path (str): Path to check
+
+        Returns:
+            bool: True if path is a file, False otherwise
+        """
+        normalized_path = self.normalize_path(path)
+        return normalized_path in self._files
 
     def is_directory(self, path: str) -> bool:
-        """Check if a path is a directory."""
-        path = os.path.normpath(path)
-        return path in self._directories
+        """Check if a path is a directory.
+
+        Args:
+            path (str): Path to check
+
+        Returns:
+            bool: True if path is a directory, False otherwise
+        """
+        normalized_path = self.normalize_path(path)
+        return normalized_path in self._directories
+
+    def get_files_in_directory(self, directory: str) -> List[str]:
+        """Get all files in a directory.
+
+        Args:
+            directory (str): Directory to get files from
+
+        Returns:
+            List[str]: List of file paths
+        """
+        normalized_dir = self.normalize_path(directory)
+        if not normalized_dir.endswith('/'):
+            normalized_dir += '/'
+        
+        files = []
+        for file_path in self._files.keys():
+            if file_path.startswith(normalized_dir):
+                files.append(file_path)
+        return files
 
     def list_files(self, directory: str, recursive: bool = False) -> List[str]:
-        """List files in a directory."""
-        directory = os.path.normpath(directory)
+        """List files in a directory.
+
+        Args:
+            directory (str): Directory to list files from
+            recursive (bool, optional): Whether to list files recursively. Defaults to False.
+
+        Returns:
+            List[str]: List of file paths
+        """
+        normalized_dir = self.normalize_path(directory)
+        if not normalized_dir.endswith('/'):
+            normalized_dir += '/'
+
         files = []
-        for path in self._files.keys():
+        for file_path in self._files.keys():
+            normalized_path = self.normalize_path(file_path)
             if recursive:
-                if path.startswith(directory):
-                    # Normalize path to use forward slashes
-                    normalized_path = path.replace("\\", "/")
+                if normalized_path.startswith(normalized_dir):
                     files.append(normalized_path)
             else:
-                if os.path.dirname(path) == directory:
-                    # Normalize path to use forward slashes
-                    normalized_path = path.replace("\\", "/")
+                parent = os.path.dirname(normalized_path)
+                if parent == normalized_dir.rstrip('/'):
                     files.append(normalized_path)
         return sorted(files)
 
-    def get_file_size(self, path: str) -> int:
-        """Get the size of a file in bytes."""
-        path = os.path.normpath(path)
-        if path not in self._files:
-            raise FileNotFoundError(f"File not found: {path}")
-        content = self._files[path]
-        if isinstance(content, str):
-            return len(content.encode("utf-8"))
-        return len(content)
+    def read_file(self, path: str) -> str:
+        """Read content from a file.
 
-    def set_permission(self, path: str, permissions: int) -> bool:
-        """Set permissions for a path."""
-        path = os.path.normpath(path)
-        if path in self._files:
-            self._permissions[path] = permissions
-            return True
-        if path in self._directories:
-            self._directories[path] = permissions
-            return True
-        return False
+        Args:
+            path (str): Path to file
+
+        Returns:
+            str: File content
+
+        Raises:
+            FileNotFoundError: If file does not exist
+        """
+        normalized_path = self.normalize_path(path)
+        if normalized_path not in self._files:
+            raise FileNotFoundError(f"File not found: {path}")
+        return self._files[normalized_path]
+
+    def read_file_chunk(self, path: str, start: int = 0, size: int = -1) -> str:
+        """Read a chunk of content from a file.
+
+        Args:
+            path (str): Path to file
+            start (int, optional): Start position. Defaults to 0.
+            size (int, optional): Number of bytes to read. Defaults to -1 (read all).
+
+        Returns:
+            str: File content chunk
+
+        Raises:
+            FileNotFoundError: If file does not exist
+        """
+        content = self.read_file(path)
+        if size == -1:
+            return content[start:]
+        return content[start:start + size]
+
+    def get_file_size(self, path: str) -> int:
+        """Get the size of a file in bytes.
+
+        Args:
+            path (str): Path to file
+
+        Returns:
+            int: File size in bytes
+
+        Raises:
+            FileNotFoundError: If file does not exist
+        """
+        content = self.read_file(path)
+        return len(content.encode('utf-8'))
+
+    def check_permissions(self, path: str) -> bool:
+        """Check if a path has read permissions.
+
+        Args:
+            path (str): Path to check
+
+        Returns:
+            bool: True if path has read permissions, False otherwise
+        """
+        normalized_path = self.normalize_path(path)
+        permissions = self._permissions.get(normalized_path, 0)
+        return bool(permissions & 0o444)  # Check read permissions
+
+    def set_permission(self, path: str, permissions: int) -> None:
+        """Set permissions for a path.
+
+        Args:
+            path (str): Path to set permissions for
+            permissions (int): Permissions to set
+        """
+        normalized_path = self.normalize_path(path)
+        if normalized_path in self._files or normalized_path in self._directories:
+            self._permissions[normalized_path] = permissions
+
+    def add_file(self, path: str, content: str) -> None:
+        """Add a file to the mock filesystem.
+
+        This is a convenience method for tests that combines create_directory and write_file.
+
+        Args:
+            path (str): Path to the file to add
+            content (str): Content to write to the file
+        """
+        normalized_path = self.normalize_path(path)
+        dir_path = os.path.dirname(normalized_path)
+        if dir_path:
+            self.create_directory(dir_path)
+        self.write_file(normalized_path, content)
+
+    def delete(self, path: str) -> None:
+        """Delete a file or directory.
+
+        Args:
+            path (str): Path to delete
+        """
+        normalized_path = self.normalize_path(path)
+        if normalized_path in self._files:
+            del self._files[normalized_path]
+            del self._permissions[normalized_path]
+        elif normalized_path in self._directories:
+            self._directories.remove(normalized_path)
+            # Remove all files and subdirectories under this directory
+            for file_path in list(self._files.keys()):
+                if file_path.startswith(normalized_path + '/'):
+                    del self._files[file_path]
+                    del self._permissions[file_path]
+            for dir_path in list(self._directories):
+                if dir_path.startswith(normalized_path + '/'):
+                    self._directories.remove(dir_path)

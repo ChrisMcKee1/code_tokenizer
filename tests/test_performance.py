@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from code_tokenizer.core.tokenizer import count_tokens
+from code_tokenizer.models.model_config import TokenizerConfig
 from code_tokenizer.services.filesystem_service import MockFileSystemService
 from code_tokenizer.services.tokenizer_service import TokenizerService
 
@@ -200,5 +201,6 @@ def test_large_file_performance(mock_fs: MockFileSystemService):
     content = "def test_function():\n    pass\n" * 1000
     mock_fs.add_file("/test/large_file.py", content)
 
-    service = TokenizerService(mock_fs)
-    service.process_files(["/test/large_file.py"])
+    config = TokenizerConfig({"model_name": "gpt-4", "max_tokens": 8192, "chunk_size": 4096})
+    service = TokenizerService(config, fs_service=mock_fs)
+    service.process_file("/test/large_file.py")

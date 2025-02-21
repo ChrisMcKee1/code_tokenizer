@@ -12,19 +12,22 @@ from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskID, TextColumn
 from rich.table import Table
 
+from ..environment import environment
+
 
 class DisplayMode:
     """Controls the display mode of the UI"""
 
-    def __init__(self) -> None:
-        self._is_test_mode = self._detect_test_mode()
+    def __init__(self, test_mode: bool = False) -> None:
+        self._is_test_mode = test_mode or self._detect_test_mode()
         self._console = Console(force_terminal=not self._is_test_mode)
 
     @staticmethod
     def _detect_test_mode() -> bool:
         """Detect if we're running in a test environment"""
         return (
-            "pytest" in sys.modules
+            environment.is_testing()
+            or "pytest" in sys.modules
             or os.getenv("DISABLE_RICH_PROGRESS", "0") == "1"
             or os.getenv("PYTEST_CURRENT_TEST") is not None
         )
@@ -200,8 +203,7 @@ class ProgressDisplay:
         Args:
             test_mode: Whether to run in test mode
         """
-        self.test_mode = test_mode
-        self.display_mode = DisplayMode()
+        self.display_mode = DisplayMode(test_mode=test_mode)
         self.console = self.display_mode.console
         self.progress: Optional[Progress] = None
         self.layout: Optional[Layout] = None
@@ -212,7 +214,7 @@ class ProgressDisplay:
         self.language_stats: Dict[str, int] = defaultdict(int)
         self.errors: List[str] = []
 
-        if not test_mode:
+        if not self.display_mode.is_test_mode:
             self.progress = create_progress_group()
             self.layout = create_display_layout(self.progress)
             if self.progress:
@@ -266,7 +268,7 @@ class ProgressDisplay:
             total: Optional total number of items to process
             errors: Optional list of error messages
         """
-        if not self.test_mode:
+        if not self.display_mode.is_test_mode:
             if file_path:
                 self.current_file = file_path
             if current is not None:
@@ -338,12 +340,12 @@ class ProgressDisplay:
             total: Total number of files
         """
         self.total = total
-        if not self.test_mode and self.progress and self.task_id:
+        if not self.display_mode.is_test_mode and self.progress and self.task_id:
             self.progress.update(task_id=self.task_id, total=total)
 
     def finish(self) -> None:
         """Complete the progress display."""
-        if not self.test_mode and self.progress:
+        if not self.display_mode.is_test_mode and self.progress:
             self.progress.stop()
 
     def error(self, message: str) -> None:
@@ -352,7 +354,7 @@ class ProgressDisplay:
         Args:
             message: Error message to display
         """
-        if not self.test_mode and self.console:
+        if not self.display_mode.is_test_mode and self.console:
             self.console.print(f"[red]Error: {message}[/red]")
 
     def warning(self, message: str) -> None:
@@ -361,7 +363,7 @@ class ProgressDisplay:
         Args:
             message: Warning message to display
         """
-        if not self.test_mode and self.console:
+        if not self.display_mode.is_test_mode and self.console:
             self.console.print(f"[yellow]Warning: {message}[/yellow]")
 
     def info(self, message: str) -> None:
@@ -370,7 +372,7 @@ class ProgressDisplay:
         Args:
             message: Info message to display
         """
-        if not self.test_mode and self.console:
+        if not self.display_mode.is_test_mode and self.console:
             self.console.print(f"[blue]Info: {message}[/blue]")
 
     def success(self, message: str) -> None:
@@ -379,10 +381,12 @@ class ProgressDisplay:
         Args:
             message: Success message to display
         """
-        if not self.test_mode and self.console:
+        if not self.display_mode.is_test_mode and self.console:
             self.console.print(f"[green]Success: {message}[/green]")
 
     def update_progress(self, current: int, total: int) -> None:
         """Update the progress bar with current progress."""
-        if self.progress and self.task_id:
+        self.current = current
+        self.total = total
+        if not self.display_mode.is_test_mode and self.progress and self.task_id:
             self.progress.update(task_id=self.task_id, completed=current, total=total)
